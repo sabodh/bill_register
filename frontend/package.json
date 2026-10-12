@@ -1,0 +1,44 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint && eslint src",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "preview": "vite preview",
+    "generate:api-types": "openapi-typescript http://localhost:8001/api/schema/ -o src/api/types/schema.d.ts"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.3.4",
+    "@hookform/resolvers": "^5.9.1",
+    "@tanstack/react-query": "^5.104.2",
+    "antd": "^6.6.6",
+    "axios": "^1.20.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.90.0",
+    "react-router-dom": "^7.18.4",
+    "recharts": "^3.10.1",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "openapi-typescript": "^7.13.0",
+    "oxlint": "^1.81.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.0"
+  }
+}
