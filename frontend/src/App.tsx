@@ -8,6 +8,7 @@ import { DoctorFormPage } from './modules/doctors/DoctorFormPage';
 import { DoctorsListPage } from './modules/doctors/DoctorsListPage';
 import { PatientFormPage } from './modules/patients/PatientFormPage';
 import { PatientsListPage } from './modules/patients/PatientsListPage';
+import { RegistrationWorkspacePage } from './modules/patients/RegistrationWorkspacePage';
 import { StaffFormPage } from './modules/staff/StaffFormPage';
 import { StaffListPage } from './modules/staff/StaffListPage';
 import { UserFormPage } from './modules/users/UserFormPage';
@@ -27,7 +28,8 @@ export default function App() {
             <Route path="users/new" element={<UserFormPage />} />
             <Route path="users/:id" element={<UserFormPage />} />
             <Route path="patients" element={<PatientsListPage />} />
-            <Route path="patients/new" element={<PatientFormPage />} />
+            <Route path="registration" element={<RegistrationWorkspacePage />} />
+            <Route path="patients/new" element={<RegistrationWorkspacePage />} />
             <Route path="patients/:id" element={<PatientFormPage />} />
             <Route path="doctors" element={<DoctorsListPage />} />
             <Route path="doctors/new" element={<DoctorFormPage />} />

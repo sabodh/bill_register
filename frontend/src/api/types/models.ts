@@ -52,6 +52,9 @@ export interface Patient {
   age_years: number | null;
   phone: string;
   address: string;
+  file_number: string;
+  doctor: number | null;
+  doctor_detail?: Doctor | null;
   branch: number;
   is_active: boolean;
 }
@@ -63,6 +66,7 @@ export interface Doctor {
   specialization: string;
   registration_number: string;
   phone: string;
+  consultation_fee: string;
   is_referral: boolean;
   hospital_clinic_name: string;
   branch: number;

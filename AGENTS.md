@@ -38,6 +38,12 @@ frontend/
 - **Tests**: SQLite in memory via `config.settings.test` (no Postgres required for `pytest`).
 - **Optional**: set `DB_ENGINE=django.db.backends.sqlite3` in `backend/.env` for zero-DB setup.
 
+## Local dev automation
+
+- **VS Code**: Run and Debug → **▶ HMS: Debug Full Stack** or **🔄 HMS: Reset DB & Debug Full Stack**
+- **CLI**: `npm run prepare` | `npm run reset` | `npm run dev` (from repo root)
+- API **:8001**, UI **:5173** (Vite proxies `/api` → backend)
+
 ## Running tests
 
 ```bash

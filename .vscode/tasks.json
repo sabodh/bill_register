@@ -1,0 +1,80 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "HMS: Prepare (env, deps, migrate)",
+      "type": "shell",
+      "command": "bash scripts/hms-prepare.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "HMS: Reset database & seed",
+      "type": "shell",
+      "command": "bash scripts/hms-reset.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "HMS: Start PostgreSQL (Docker)",
+      "type": "shell",
+      "command": "docker compose up -d db",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "HMS: Backend runserver (8001)",
+      "type": "shell",
+      "command": "source .venv/bin/activate && python manage.py runserver 8001",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "django",
+        "pattern": { "regexp": "^.*$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Starting development server at|Quit the server with"
+        }
+      }
+    },
+    {
+      "label": "HMS: Frontend Vite (5173)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": { "regexp": "^.*$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Local:\\s+http://localhost:5173/"
+        }
+      }
+    },
+    {
+      "label": "HMS: Run Full Stack (no debugger)",
+      "dependsOn": ["HMS: Prepare (env, deps, migrate)"],
+      "dependsOrder": "sequence",
+      "type": "shell",
+      "command": "HMS_SKIP_PREPARE=1 bash scripts/hms-dev.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "hms",
+        "pattern": { "regexp": "^.*$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Local:\\s+http://localhost:5173/"
+        }
+      }
+    }
+  ]
+}

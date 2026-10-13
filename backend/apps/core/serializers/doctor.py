@@ -13,6 +13,7 @@ class DoctorSerializer(serializers.ModelSerializer):
             "specialization",
             "registration_number",
             "phone",
+            "consultation_fee",
             "is_referral",
             "hospital_clinic_name",
             "branch",

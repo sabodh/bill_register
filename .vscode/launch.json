@@ -2,16 +2,40 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Django: runserver",
+      "name": "HMS: Django API (debug, :8001)",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/backend/manage.py",
-      "args": ["runserver", "8001"],
+      "args": ["runserver", "8001", "--noreload"],
       "django": true,
       "cwd": "${workspaceFolder}/backend",
       "env": {
         "DJANGO_SETTINGS_MODULE": "config.settings.dev"
-      }
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "HMS: Frontend Vite (:5173)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "▶ HMS: Debug Full Stack",
+      "configurations": ["HMS: Django API (debug, :8001)", "HMS: Frontend Vite (:5173)"],
+      "preLaunchTask": "HMS: Prepare (env, deps, migrate)",
+      "stopAll": true
+    },
+    {
+      "name": "🔄 HMS: Reset DB & Debug Full Stack",
+      "configurations": ["HMS: Django API (debug, :8001)", "HMS: Frontend Vite (:5173)"],
+      "preLaunchTask": "HMS: Reset database & seed",
+      "stopAll": true
     }
   ]
 }

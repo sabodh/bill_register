@@ -21,6 +21,12 @@ export const menuConfig: MenuItemConfig[] = [
     label: 'Registration',
     children: [
       {
+        key: 'registration-desk',
+        label: 'Registration desk',
+        path: '/registration',
+        permission: 'core.add_patient',
+      },
+      {
         key: 'patients',
         label: 'Patients',
         path: '/patients',

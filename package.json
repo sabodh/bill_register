@@ -1,0 +1,12 @@
+{
+  "name": "hms-platform",
+  "private": true,
+  "description": "Healthcare management monorepo — orchestration scripts",
+  "scripts": {
+    "prepare": "bash scripts/hms-prepare.sh",
+    "reset": "bash scripts/hms-reset.sh",
+    "dev": "bash scripts/hms-dev.sh",
+    "backend": "cd backend && . .venv/bin/activate && python manage.py runserver 8001",
+    "frontend": "cd frontend && npm run dev"
+  }
+}

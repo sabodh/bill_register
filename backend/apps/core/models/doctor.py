@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 
 from apps.core.models.base import BranchScopedModel
@@ -5,6 +7,12 @@ from apps.core.models.base import BranchScopedModel
 
 class Doctor(BranchScopedModel):
     name = models.CharField(max_length=200)
+    consultation_fee = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("500.00"),
+        help_text="Default OP / registration doctor fee",
+    )
     qualification = models.CharField(max_length=200, blank=True)
     specialization = models.CharField(max_length=200, blank=True)
     registration_number = models.CharField(max_length=100, blank=True)

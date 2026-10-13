@@ -15,7 +15,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const { hasPermission } = useAuth();
 
   const primaryAction = hasPermission('core.add_patient')
-    ? { label: 'Register patient', path: '/patients/new' }
+    ? { label: 'Registration desk', path: '/registration' }
     : hasPermission('core.add_user')
       ? { label: 'New user', path: '/users/new' }
       : null;

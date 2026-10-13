@@ -28,6 +28,7 @@ export function PatientsListPage() {
   const columns = useMemo(
     () => [
       { title: 'UHID', dataIndex: 'uhid', key: 'uhid' },
+      { title: 'File no.', dataIndex: 'file_number', key: 'file_number' },
       { title: 'Name', dataIndex: 'name', key: 'name' },
       { title: 'Phone', dataIndex: 'phone', key: 'phone' },
       { title: 'Gender', dataIndex: 'gender', key: 'gender' },
@@ -49,8 +50,8 @@ export function PatientsListPage() {
         subtitle="Search by name, phone, or UHID"
         breadcrumbs={[{ title: 'Registration' }, { title: 'Patients' }]}
         extra={
-          <Button type="primary" onClick={() => navigate('/patients/new')}>
-            Register patient
+          <Button type="primary" onClick={() => navigate('/registration')}>
+            Registration desk
           </Button>
         }
       />

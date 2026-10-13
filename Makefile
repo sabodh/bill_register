@@ -1,4 +1,13 @@
-.PHONY: db-up db-down backend-setup migrate seed test run-backend run-frontend setup
+.PHONY: db-up db-down backend-setup migrate seed test run-backend run-frontend setup prepare reset dev
+
+prepare:
+	bash scripts/hms-prepare.sh
+
+reset:
+	bash scripts/hms-reset.sh
+
+dev:
+	bash scripts/hms-dev.sh
 
 db-up:
 	docker compose up -d db

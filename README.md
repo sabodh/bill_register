@@ -103,7 +103,33 @@ npm run format
 
 Access tokens are kept in memory. Refresh tokens are stored in `localStorage` (`hms_refresh_token`). This is a deliberate trade-off for SPA simplicity; httpOnly cookies can be adopted later.
 
-## VS Code
+## VS Code — one-click start / reset
 
-- Use **Python: Django** debug configuration in `.vscode/launch.json`
-- Install recommended extensions from `.vscode/extensions.json`
+Install recommended extensions from `.vscode/extensions.json` (Python, debugpy, ESLint, Prettier).
+
+### Debug panel (Run and Debug)
+
+| Launch config | What it does |
+|---------------|----------------|
+| **▶ HMS: Debug Full Stack** | Prepare (venv, migrate) → Django **debugger** on **:8001** + Vite on **:5173** |
+| **🔄 HMS: Reset DB & Debug Full Stack** | Wipe SQLite (if used), migrate, seed demo → then start both servers |
+| **HMS: Django API (debug, :8001)** | Backend only with breakpoints |
+| **HMS: Frontend Vite (:5173)** | Frontend only |
+
+Open [http://localhost:5173](http://localhost:5173) after start. Login: **admin** / **adminpass123**.
+
+### Terminal menu (Tasks)
+
+`Terminal` → `Run Task…`:
+
+- **HMS: Prepare** — env files, pip/npm install, migrate  
+- **HMS: Reset database & seed** — fresh SQLite + demo data  
+- **HMS: Run Full Stack (no debugger)** — both servers without debugpy  
+
+### Command line (repo root)
+
+```bash
+npm run prepare   # or: make prepare
+npm run reset     # or: make reset
+npm run dev       # or: make dev
+```

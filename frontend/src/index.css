@@ -17,3 +17,49 @@ body {
     display: inline-flex;
   }
 }
+
+.registration-workspace-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.registration-workspace-tabs .ant-tabs-content {
+  display: none;
+}
+
+.registration-tab-panels {
+  padding-top: 0.75rem;
+}
+
+.registration-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .registration-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.registration-fees-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 22rem;
+}
+
+.registration-fees-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.registration-fees-total {
+  font-size: 1rem;
+}
