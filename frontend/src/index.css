@@ -31,8 +31,175 @@ body {
   display: none;
 }
 
-.registration-tab-panels {
+.registration-desk-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
   padding-top: 0.75rem;
+}
+
+.registration-tab-panels {
+  flex: 0 1 28rem;
+  min-width: 0;
+  max-width: 28rem;
+}
+
+.registration-form {
+  width: 100%;
+}
+
+.registration-doctor-board {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.registration-doctor-board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.registration-doctor-token-card {
+  cursor: pointer;
+}
+
+.registration-doctor-token-card--selected {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 1px #1677ff;
+}
+
+.registration-doctor-token-name {
+  display: block;
+  line-height: 1.3;
+}
+
+.registration-doctor-token-spec {
+  display: block;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.registration-doctor-token-value {
+  margin-top: 0.65rem;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.registration-doctor-token-fraction {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.registration-doctor-token-sep {
+  margin: 0 0.15rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.registration-summary-card {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #f0f5ff 0%, #ffffff 55%);
+}
+
+.registration-summary-total {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.registration-summary-total-label {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.registration-summary-total-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.registration-desk-stat-block {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.registration-desk-stat-block--compact {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.registration-desk-stat-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.registration-desk-stat-line strong {
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+}
+
+.registration-doctor-board-empty {
+  grid-column: 1 / -1;
+}
+
+.doctor-list-panel {
+  flex: 1 1 18rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.doctor-list-panel-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: min(70vh, 42rem);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.doctor-list-card {
+  cursor: pointer;
+}
+
+.doctor-list-card--selected {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 1px #1677ff;
+}
+
+.doctor-list-card-name {
+  display: block;
+  line-height: 1.3;
+}
+
+.doctor-list-card-meta {
+  display: block;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .registration-desk-layout {
+    flex-direction: column;
+  }
+
+  .registration-tab-panels {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .registration-doctor-board {
+    width: 100%;
+  }
 }
 
 .registration-form-grid {

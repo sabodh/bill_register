@@ -33,10 +33,22 @@ export const menuConfig: MenuItemConfig[] = [
         permission: 'core.view_patient',
       },
       {
+        key: 'doctor-departments',
+        label: 'Doctor departments',
+        path: '/doctor-departments',
+        permission: 'core.view_doctor',
+      },
+      {
         key: 'doctors',
         label: 'Doctors',
         path: '/doctors',
         permission: 'core.view_doctor',
+      },
+      {
+        key: 'staff-departments',
+        label: 'Staff departments',
+        path: '/staff-departments',
+        permission: 'core.view_staff',
       },
       {
         key: 'staff',
@@ -47,17 +59,34 @@ export const menuConfig: MenuItemConfig[] = [
     ],
   },
   {
-    key: 'billing',
-    label: 'Billing',
-    path: '/billing',
-    permission: 'billing.view_bill',
-  },
-  {
     key: 'lab',
     label: 'Lab',
-    path: '/coming-soon/lab',
-    permission: 'lab.view_test',
-    comingSoon: true,
+    children: [
+      {
+        key: 'lab-billing',
+        label: 'Billing',
+        path: '/billing',
+        permission: 'billing.view_bill',
+      },
+      {
+        key: 'lab-results',
+        label: 'Result',
+        path: '/lab/results',
+        permission: 'lab.view_test',
+      },
+      {
+        key: 'lab-tests',
+        label: 'Test',
+        path: '/lab/tests',
+        permission: 'lab.view_test',
+      },
+      {
+        key: 'lab-test-departments',
+        label: 'Test department',
+        path: '/lab/test-departments',
+        permission: 'lab.view_test',
+      },
+    ],
   },
   {
     key: 'pharmacy',

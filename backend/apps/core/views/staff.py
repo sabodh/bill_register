@@ -9,7 +9,15 @@ from apps.core.views.base import CoreModelViewSet
 class StaffViewSet(CoreModelViewSet):
     serializer_class = StaffSerializer
     filterset_class = StaffFilter
-    search_fields = ["employee_id", "designation", "phone", "user__username"]
+    search_fields = [
+        "employee_id",
+        "name",
+        "phone",
+        "alternative_phone",
+        "aadhar_number",
+        "designation",
+        "user__username",
+    ]
     ordering_fields = ["employee_id", "created_at"]
     permission_classes = [HasPerm(perms.CORE_VIEW_STAFF)]
 
@@ -21,7 +29,7 @@ class StaffViewSet(CoreModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        qs = Staff.objects.select_related("branch", "user", "created_by", "updated_by").filter(
-            is_active=True
-        )
+        qs = Staff.objects.select_related(
+            "branch", "user", "department", "created_by", "updated_by"
+        ).filter(is_active=True)
         return self.get_branch_filtered_queryset(qs)

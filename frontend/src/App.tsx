@@ -4,8 +4,12 @@ import { LoginPage } from './auth/LoginPage';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppShell } from './layout/AppShell';
 import { BillingPage } from './modules/billing/BillingPage';
-import { DoctorFormPage } from './modules/doctors/DoctorFormPage';
-import { DoctorsListPage } from './modules/doctors/DoctorsListPage';
+import { LabResultsPage } from './modules/lab/LabResultsPage';
+import { LabTestDepartmentWorkspacePage } from './modules/lab/LabTestDepartmentWorkspacePage';
+import { LabTestsWorkspacePage } from './modules/lab/LabTestsWorkspacePage';
+import { DoctorDepartmentWorkspacePage } from './modules/departments/DoctorDepartmentWorkspacePage';
+import { StaffDepartmentWorkspacePage } from './modules/departments/StaffDepartmentWorkspacePage';
+import { DoctorsWorkspacePage } from './modules/doctors/DoctorsWorkspacePage';
 import { PatientFormPage } from './modules/patients/PatientFormPage';
 import { PatientsListPage } from './modules/patients/PatientsListPage';
 import { RegistrationWorkspacePage } from './modules/patients/RegistrationWorkspacePage';
@@ -31,13 +35,26 @@ export default function App() {
             <Route path="registration" element={<RegistrationWorkspacePage />} />
             <Route path="patients/new" element={<RegistrationWorkspacePage />} />
             <Route path="patients/:id" element={<PatientFormPage />} />
-            <Route path="doctors" element={<DoctorsListPage />} />
-            <Route path="doctors/new" element={<DoctorFormPage />} />
-            <Route path="doctors/:id" element={<DoctorFormPage />} />
+            <Route path="doctor-departments" element={<DoctorDepartmentWorkspacePage />} />
+            <Route path="doctor-departments/new" element={<DoctorDepartmentWorkspacePage />} />
+            <Route path="doctor-departments/:id" element={<DoctorDepartmentWorkspacePage />} />
+            <Route path="doctors" element={<DoctorsWorkspacePage />} />
+            <Route path="doctors/new" element={<DoctorsWorkspacePage />} />
+            <Route path="doctors/:id" element={<DoctorsWorkspacePage />} />
+            <Route path="staff-departments" element={<StaffDepartmentWorkspacePage />} />
+            <Route path="staff-departments/new" element={<StaffDepartmentWorkspacePage />} />
+            <Route path="staff-departments/:id" element={<StaffDepartmentWorkspacePage />} />
             <Route path="staff" element={<StaffListPage />} />
             <Route path="staff/new" element={<StaffFormPage />} />
             <Route path="staff/:id" element={<StaffFormPage />} />
             <Route path="billing" element={<BillingPage />} />
+            <Route path="lab/results" element={<LabResultsPage />} />
+            <Route path="lab/tests" element={<LabTestsWorkspacePage />} />
+            <Route path="lab/tests/new" element={<LabTestsWorkspacePage />} />
+            <Route path="lab/tests/:id" element={<LabTestsWorkspacePage />} />
+            <Route path="lab/test-departments" element={<LabTestDepartmentWorkspacePage />} />
+            <Route path="lab/test-departments/new" element={<LabTestDepartmentWorkspacePage />} />
+            <Route path="lab/test-departments/:id" element={<LabTestDepartmentWorkspacePage />} />
             <Route path="coming-soon/:module" element={<ComingSoonPage />} />
           </Route>
         </Route>

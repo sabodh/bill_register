@@ -3,10 +3,12 @@ from rest_framework.routers import DefaultRouter
 
 from apps.core.views import (
     BranchViewSet,
+    DoctorDepartmentViewSet,
     DoctorViewSet,
     MeView,
     PatientViewSet,
     RoleViewSet,
+    StaffDepartmentViewSet,
     StaffViewSet,
     TokenLoginView,
     TokenRefreshView,
@@ -18,7 +20,9 @@ router.register("branches", BranchViewSet, basename="branch")
 router.register("users", UserViewSet, basename="user")
 router.register("roles", RoleViewSet, basename="role")
 router.register("patients", PatientViewSet, basename="patient")
+router.register("doctor-departments", DoctorDepartmentViewSet, basename="doctor-department")
 router.register("doctors", DoctorViewSet, basename="doctor")
+router.register("staff-departments", StaffDepartmentViewSet, basename="staff-department")
 router.register("staff", StaffViewSet, basename="staff")
 
 urlpatterns = [

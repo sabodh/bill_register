@@ -5,7 +5,7 @@ import {
 } from '@ant-design/icons';
 import { Button, Drawer, Grid, Layout, Menu, Typography } from 'antd';
 import type { MenuProps } from 'antd';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
@@ -49,7 +49,7 @@ type SidebarProps = {
 
 export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [openKeys, setOpenKeys] = useState<string[]>(['registration']);
+  const [openKeys, setOpenKeys] = useState<string[]>(['registration', 'lab']);
   const { permissions, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -64,22 +64,33 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const menuItems = useMemo(() => buildMenuItems(visibleMenu), [visibleMenu]);
 
   const selectedKey = useMemo(() => {
-    const match = (items: MenuItemConfig[]): string | undefined => {
+    let best: { key: string; pathLen: number } | undefined;
+    const visit = (items: MenuItemConfig[]) => {
       for (const item of items) {
-        if (item.path === location.pathname) {
-          return item.key;
-        }
-        if (item.children) {
-          const child = match(item.children);
-          if (child) {
-            return child;
+        if (item.path) {
+          const exact = location.pathname === item.path;
+          const nested = location.pathname.startsWith(`${item.path}/`);
+          if (exact || nested) {
+            const pathLen = item.path.length;
+            if (!best || pathLen > best.pathLen) {
+              best = { key: item.key, pathLen };
+            }
           }
         }
+        if (item.children) {
+          visit(item.children);
+        }
       }
-      return undefined;
     };
-    return match(visibleMenu) ?? 'dashboard';
+    visit(visibleMenu);
+    return best?.key ?? 'dashboard';
   }, [location.pathname, visibleMenu]);
+
+  useEffect(() => {
+    if (location.pathname === '/billing' || location.pathname.startsWith('/lab')) {
+      setOpenKeys((keys) => (keys.includes('lab') ? keys : [...keys, 'lab']));
+    }
+  }, [location.pathname]);
 
   const onMenuClick: MenuProps['onClick'] = ({ key }) => {
     const path = resolvePath(visibleMenu, key);

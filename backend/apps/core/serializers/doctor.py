@@ -1,19 +1,25 @@
 from rest_framework import serializers
 
 from apps.core.models import Doctor
+from apps.core.serializers.doctor_department import DoctorDepartmentSerializer
 
 
 class DoctorSerializer(serializers.ModelSerializer):
+    department_detail = DoctorDepartmentSerializer(source="department", read_only=True)
+
     class Meta:
         model = Doctor
         fields = [
             "id",
+            "department",
+            "department_detail",
             "name",
             "qualification",
             "specialization",
             "registration_number",
             "phone",
             "consultation_fee",
+            "revisit_period_days",
             "is_referral",
             "hospital_clinic_name",
             "branch",

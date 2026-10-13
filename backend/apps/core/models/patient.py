@@ -26,6 +26,11 @@ class Patient(BranchScopedModel):
         blank=True,
         related_name="patients",
     )
+    op_token = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="OP queue token for the assigned doctor on the registration day",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:

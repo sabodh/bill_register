@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import type { Patient } from '../../api/types/models';
 import { PageHeader } from '../../components/PageHeader';
+import { DoctorTokenBoard } from './DoctorTokenBoard';
 import { PatientRegistrationPanel } from './PatientRegistrationPanel';
 
 type RegistrationTab = {
@@ -34,6 +35,8 @@ export function RegistrationWorkspacePage() {
   const navigate = useNavigate();
   const [tabs, setTabs] = useState<RegistrationTab[]>(() => [createTab()]);
   const [activeKey, setActiveKey] = useState(() => tabs[0].key);
+  const [pendingDoctorByTab, setPendingDoctorByTab] = useState<Record<string, number>>({});
+  const [selectedDoctorByTab, setSelectedDoctorByTab] = useState<Record<string, number | null>>({});
 
   const addTab = useCallback(() => {
     const tab = createTab();
@@ -151,21 +154,46 @@ export function RegistrationWorkspacePage() {
           items={tabBarItems}
           className="registration-workspace-tabs"
         />
-        <div className="registration-tab-panels">
-          {tabs.map((tab, index) => (
-            <div
-              key={tab.key}
-              className="registration-tab-panel"
-              hidden={tab.key !== activeKey}
-            >
-              <PatientRegistrationPanel
-                patientId={tab.patientId}
-                autoFocusName={tab.key === activeKey && index === 0}
-                onTitleChange={(title, dirty) => handleTitleChange(tab.key, title, dirty)}
-                onSuccess={(patient) => handleRegistrationSuccess(tab.key, patient)}
-              />
-            </div>
-          ))}
+        <div className="registration-desk-layout">
+          <div className="registration-tab-panels">
+            {tabs.map((tab, index) => (
+              <div
+                key={tab.key}
+                className="registration-tab-panel"
+                hidden={tab.key !== activeKey}
+              >
+                <PatientRegistrationPanel
+                  patientId={tab.patientId}
+                  autoFocusName={tab.key === activeKey && index === 0}
+                  pendingDoctorId={pendingDoctorByTab[tab.key] ?? null}
+                  onPendingDoctorConsumed={() =>
+                    setPendingDoctorByTab((prev) => {
+                      const next = { ...prev };
+                      delete next[tab.key];
+                      return next;
+                    })
+                  }
+                  onDoctorChange={(doctorId) =>
+                    setSelectedDoctorByTab((prev) => ({ ...prev, [tab.key]: doctorId }))
+                  }
+                  onTitleChange={(title, dirty) => handleTitleChange(tab.key, title, dirty)}
+                  onSuccess={(patient) => {
+                    if (patient.doctor) {
+                      setSelectedDoctorByTab((prev) => ({ ...prev, [tab.key]: patient.doctor }));
+                    }
+                    handleRegistrationSuccess(tab.key, patient);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <DoctorTokenBoard
+            selectedDoctorId={selectedDoctorByTab[activeKey] ?? null}
+            onSelectDoctor={(doctorId) => {
+              setPendingDoctorByTab((prev) => ({ ...prev, [activeKey]: doctorId }));
+              setSelectedDoctorByTab((prev) => ({ ...prev, [activeKey]: doctorId }));
+            }}
+          />
         </div>
       </Card>
     </>

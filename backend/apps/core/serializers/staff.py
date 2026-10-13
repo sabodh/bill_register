@@ -1,20 +1,30 @@
 from rest_framework import serializers
 
 from apps.core.models import Staff
+from apps.core.serializers.staff_department import StaffDepartmentSerializer
 
 
 class StaffSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True, allow_null=True)
+    department_detail = StaffDepartmentSerializer(source="department", read_only=True)
 
     class Meta:
         model = Staff
         fields = [
             "id",
+            "department",
+            "department_detail",
             "user",
             "username",
             "employee_id",
-            "designation",
+            "name",
+            "gender",
+            "date_of_birth",
+            "address",
             "phone",
+            "alternative_phone",
+            "aadhar_number",
+            "designation",
             "branch",
             "is_active",
             "created_at",
