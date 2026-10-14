@@ -37,7 +37,8 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { completeBillPayment } from './completeBillPayment';
 import { billPaymentStatus } from './billPayment';
 import { billPdfSnapshotFromDetail } from './pdf/billPdfSnapshot';
-import { billPdfPageSizeLabel, downloadBillPdfFromDetail } from './pdf/downloadBillPdf';
+import type { BillPdfSnapshot } from './pdf/billPdfTypes';
+import { billPdfPageSizeLabel } from './pdf/downloadBillPdf';
 
 function formatAgeSex(patient: Patient) {
   const agePart = patient.age_years != null ? `${patient.age_years}y` : '—';
@@ -166,9 +167,10 @@ type BillingPanelProps = {
   billId?: number;
   onTitleChange?: (title: string, dirty: boolean) => void;
   onSuccess?: () => void;
+  onPreviewPdf?: (snapshot: BillPdfSnapshot) => void;
 };
 
-export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelProps) {
+export function BillingPanel({ billId, onTitleChange, onSuccess, onPreviewPdf }: BillingPanelProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [patientSearch, setPatientSearch] = useState('');
@@ -188,7 +190,6 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [paymentTransactionId, setPaymentTransactionId] = useState('');
   const [advancePaid, setAdvancePaid] = useState<number>(0);
-  const [pdfLoading, setPdfLoading] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 300);
   const debouncedPatientSearch = useDebouncedValue(patientSearch, 300);
   const debouncedDoctorSearch = useDebouncedValue(doctorSearch, 300);
@@ -592,12 +593,19 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
       const { data } = await apiClient.post<BillRecord>('/billing/bills/', payload);
       return data;
     },
-    onSuccess: (bill) => {
+    onSuccess: async (bill) => {
       message.success(
         billId != null ? `Bill updated — ${bill.bill_number}` : `Bill saved — ${bill.bill_number}`,
       );
       void queryClient.invalidateQueries({ queryKey: ['lab', 'result-bills'] });
+      void queryClient.invalidateQueries({ queryKey: ['billing', 'bill', bill.id] });
       void queryClient.invalidateQueries({ queryKey: ['billing', 'bill', billId] });
+      try {
+        const { data: detail } = await apiClient.get<BillDetailRecord>(`/billing/bills/${bill.id}/`);
+        onPreviewPdf?.(billPdfSnapshotFromDetail(detail));
+      } catch {
+        message.warning('Bill saved, but PDF preview could not be loaded.');
+      }
       if (billId == null) {
         onSuccess?.();
       }
@@ -605,20 +613,12 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
     onError: (error) => message.error(billSaveErrorMessage(error)),
   });
 
-  const handleDownloadPdf = async () => {
+  const handlePreviewPdf = () => {
     const bill = billQuery.data;
     if (!bill) {
       return;
     }
-    setPdfLoading(true);
-    try {
-      const snapshot = await downloadBillPdfFromDetail(bill);
-      message.success(`PDF downloaded (${billPdfPageSizeLabel(snapshot)})`);
-    } catch {
-      message.error('Could not generate PDF');
-    } finally {
-      setPdfLoading(false);
-    }
+    onPreviewPdf?.(billPdfSnapshotFromDetail(bill));
   };
 
   const pdfPageHint =
@@ -636,14 +636,9 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
       <div className="billing-form-section">
         <div className="billing-form-section-heading">
           <Typography.Text strong className="billing-form-section-title">Patient</Typography.Text>
-          {billId != null && billQuery.data ? (
-            <Button
-              size="small"
-              icon={<FilePdfOutlined />}
-              loading={pdfLoading}
-              onClick={() => void handleDownloadPdf()}
-            >
-              Download PDF{pdfPageHint ? ` (${pdfPageHint})` : ''}
+          {billId != null && billQuery.data && onPreviewPdf ? (
+            <Button size="small" icon={<FilePdfOutlined />} onClick={handlePreviewPdf}>
+              Preview PDF{pdfPageHint ? ` (${pdfPageHint})` : ''}
             </Button>
           ) : null}
         </div>

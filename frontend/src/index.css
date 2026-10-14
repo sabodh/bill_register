@@ -298,32 +298,37 @@ body {
 
 .lab-bill-card-header {
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 0.35rem;
-  flex-wrap: nowrap;
+}
+
+.lab-bill-card-header-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .lab-bill-card-number {
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 42%;
+  max-width: 100%;
 }
 
 .lab-bill-card-header-end {
   display: flex;
   align-items: center;
   gap: 0.2rem;
-  flex-shrink: 1;
-  min-width: 0;
+  flex-shrink: 0;
   justify-content: flex-end;
 }
 
-.lab-bill-card-header-tags {
-  flex: 1 1 auto;
-  min-width: 0;
-  justify-content: flex-start;
-  margin: 0;
+.lab-bill-card-header-menu {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .lab-bill-card-actions-btn {
@@ -363,11 +368,6 @@ body {
 .lab-bill-card-balance--pending .doctor-list-card-meta:first-child {
   color: rgba(0, 0, 0, 0.65);
   font-weight: 500;
-}
-
-.lab-bill-card-header .doctor-list-card-name {
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .lab-bill-card-patient-line {
@@ -1212,6 +1212,29 @@ body {
 .billing-complete-payment-btn {
   width: 100%;
   margin-top: 0.35rem;
+}
+
+.bill-pdf-preview-body {
+  min-height: min(75vh, 640px);
+  display: flex;
+  flex-direction: column;
+}
+
+.bill-pdf-preview-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+}
+
+.bill-pdf-preview-frame {
+  flex: 1;
+  width: 100%;
+  min-height: min(75vh, 640px);
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  background: #fafafa;
 }
 
 .billing-summary-total {

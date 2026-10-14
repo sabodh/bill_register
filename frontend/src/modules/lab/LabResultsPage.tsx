@@ -6,6 +6,8 @@ import { useSearchParams } from 'react-router-dom';
 import type { LabResultBillSummary, Patient } from '../../api/types/models';
 import { PatientSessionLookup } from '../../components/PatientSessionLookup';
 import { PageHeader } from '../../components/PageHeader';
+import { BillPdfPreviewModal } from '../billing/pdf/BillPdfPreviewModal';
+import type { BillPdfSnapshot } from '../billing/pdf/billPdfTypes';
 import { LabResultBillWorkspace } from './LabResultBillWorkspace';
 import { RecentLabBillsSidebar } from './RecentLabBillsSidebar';
 
@@ -57,6 +59,13 @@ export function LabResultsPage() {
   const [tabs, setTabs] = useState<ResultTab[]>(() => [createResultTab()]);
   const [activeKey, setActiveKey] = useState(() => tabs[0].key);
   const [selectedRecentBillId, setSelectedRecentBillId] = useState<number | null>(null);
+  const [pdfPreviewSnapshot, setPdfPreviewSnapshot] = useState<BillPdfSnapshot | null>(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+
+  const openBillPdfPreview = useCallback((snapshot: BillPdfSnapshot) => {
+    setPdfPreviewSnapshot(snapshot);
+    setPdfPreviewOpen(true);
+  }, []);
 
   const activeTab = tabs.find((t) => t.key === activeKey);
   const activeBillId = activeTab?.billId ?? null;
@@ -199,6 +208,14 @@ export function LabResultsPage() {
 
   return (
     <>
+      <BillPdfPreviewModal
+        open={pdfPreviewOpen}
+        snapshot={pdfPreviewSnapshot}
+        onClose={() => {
+          setPdfPreviewOpen(false);
+          setPdfPreviewSnapshot(null);
+        }}
+      />
       <PageHeader
         title="Lab results"
         subtitle="Open bills in tabs; use + for another bill. Save each tab before closing."
@@ -286,6 +303,7 @@ export function LabResultsPage() {
           onSelectBill={handleOpenBill}
           onEditBill={handleOpenBill}
           onBillCancelled={handleBillCancelled}
+          onPreviewBillPdf={openBillPdfPreview}
           resultWorklistTabs
           emptyDescription="No lab bills for this patient — save one under Lab → Billing."
           selectPatientHint="Select a patient on the left to load their bills."

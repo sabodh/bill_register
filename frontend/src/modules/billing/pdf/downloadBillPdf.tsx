@@ -1,7 +1,5 @@
-import { pdf } from '@react-pdf/renderer';
-
 import type { BillDetailRecord } from '../../../api/types/models';
-import { BillPdfDocument } from './BillPdfDocument';
+import { createBillPdfBlobUrl } from './createBillPdfBlobUrl';
 import { chooseBillPageSize } from './billPageSize';
 import { billPdfSnapshotFromDetail } from './billPdfSnapshot';
 import type { BillPdfSnapshot } from './billPdfTypes';
@@ -13,8 +11,7 @@ export async function downloadBillPdfFromDetail(bill: BillDetailRecord): Promise
 }
 
 export async function downloadBillPdf(snapshot: BillPdfSnapshot): Promise<void> {
-  const blob = await pdf(<BillPdfDocument snapshot={snapshot} />).toBlob();
-  const url = URL.createObjectURL(blob);
+  const url = await createBillPdfBlobUrl(snapshot);
   const link = document.createElement('a');
   link.href = url;
   link.download = `Bill-${snapshot.bill_number}.pdf`;

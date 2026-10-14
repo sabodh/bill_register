@@ -13,7 +13,8 @@ import { isAxiosError } from 'axios';
 import { apiClient } from '../../api/client';
 import type { BillDetailRecord } from '../../api/types/models';
 import { completeBillPayment } from './completeBillPayment';
-import { billPdfPageSizeLabel, downloadBillPdfFromDetail } from './pdf/downloadBillPdf';
+import { billPdfSnapshotFromDetail } from './pdf/billPdfSnapshot';
+import type { BillPdfSnapshot } from './pdf/billPdfTypes';
 import { formatMoney } from '../patients/patientRegistrationSchema';
 
 type RecentBillCardActionsProps = {
@@ -24,6 +25,7 @@ type RecentBillCardActionsProps = {
   onEdit?: (billId: number) => void;
   onCancelled?: (billId: number) => void;
   onPaymentCompleted?: (billId: number) => void;
+  onPreviewPdf?: (snapshot: BillPdfSnapshot) => void;
 };
 
 export function RecentBillCardActions({
@@ -34,6 +36,7 @@ export function RecentBillCardActions({
   onEdit,
   onCancelled,
   onPaymentCompleted,
+  onPreviewPdf,
 }: RecentBillCardActionsProps) {
   const queryClient = useQueryClient();
   const paymentPending = balanceDue > 0;
@@ -41,12 +44,16 @@ export function RecentBillCardActions({
   const pdfMutation = useMutation({
     mutationFn: async () => {
       const { data } = await apiClient.get<BillDetailRecord>(`/billing/bills/${billId}/`);
-      return downloadBillPdfFromDetail(data);
+      return billPdfSnapshotFromDetail(data);
     },
     onSuccess: (snapshot) => {
-      message.success(`PDF downloaded (${billPdfPageSizeLabel(snapshot)})`);
+      if (onPreviewPdf) {
+        onPreviewPdf(snapshot);
+      } else {
+        message.error('PDF preview is not available on this screen.');
+      }
     },
-    onError: () => message.error('Could not generate PDF'),
+    onError: () => message.error('Could not load bill for PDF'),
   });
 
   const completePaymentMutation = useMutation({
@@ -108,10 +115,10 @@ export function RecentBillCardActions({
 
   const menuItems: MenuProps['items'] = [
     {
-      key: 'download-pdf',
-      label: 'Download PDF',
+      key: 'preview-pdf',
+      label: 'Preview bill PDF',
       icon: <FilePdfOutlined />,
-      disabled: pdfMutation.isPending,
+      disabled: pdfMutation.isPending || !onPreviewPdf,
     },
     ...(onEdit
       ? [
@@ -141,7 +148,7 @@ export function RecentBillCardActions({
 
   const onMenuClick: MenuProps['onClick'] = ({ key, domEvent }) => {
     domEvent.stopPropagation();
-    if (key === 'download-pdf') {
+    if (key === 'preview-pdf') {
       pdfMutation.mutate();
       return;
     }

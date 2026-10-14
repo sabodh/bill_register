@@ -8,6 +8,7 @@ import { ErrorBlock, LoadingBlock } from '../../components/QueryState';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { billBalanceDue, billPaymentStatus } from '../billing/billPayment';
 import { RecentBillCardActions } from '../billing/RecentBillCardActions';
+import type { BillPdfSnapshot } from '../billing/pdf/billPdfTypes';
 import { formatMoney } from '../patients/patientRegistrationSchema';
 
 function formatSampleDate(iso: string) {
@@ -30,6 +31,7 @@ type RecentLabBillsSidebarProps = {
   patientId?: number | null;
   onEditBill?: (billId: number) => void;
   onBillCancelled?: (billId: number) => void;
+  onPreviewBillPdf?: (snapshot: BillPdfSnapshot) => void;
   emptyDescription: string;
   selectPatientHint?: string;
   /** Lab results page: Pending vs Completed worklists + status tags on cards */
@@ -42,6 +44,7 @@ function LabResultBillCard({
   onSelectBill,
   onEditBill,
   onBillCancelled,
+  onPreviewBillPdf,
   showResultStatus,
 }: {
   bill: LabResultBillSummary;
@@ -49,6 +52,7 @@ function LabResultBillCard({
   onSelectBill: (billId: number, bill?: LabResultBillSummary) => void;
   onEditBill?: (billId: number) => void;
   onBillCancelled?: (billId: number) => void;
+  onPreviewBillPdf?: (snapshot: BillPdfSnapshot) => void;
   showResultStatus: boolean;
 }) {
   const balanceDue = billBalanceDue(bill);
@@ -63,34 +67,35 @@ function LabResultBillCard({
       onClick={() => onSelectBill(bill.id, showResultStatus ? bill : undefined)}
     >
       <div className="lab-bill-card-header">
-        <Typography.Text strong className="doctor-list-card-name lab-bill-card-number">
-          {bill.bill_number}
-        </Typography.Text>
-        {paymentStatus || showResultStatus ? (
-          <div className="lab-results-bill-status-row lab-bill-card-header-tags">
-            {paymentStatus ? (
-              <Tag className="lab-results-status-tag" color={paymentStatus.color}>
-                {paymentStatus.label}
-              </Tag>
-            ) : null}
-            {showResultStatus ? (
-              <Tag
-                className="lab-results-status-tag"
-                color={bill.results_completed ? 'success' : 'warning'}
-              >
-                {bill.results_completed ? 'Results completed' : 'Results pending'}
-              </Tag>
-            ) : null}
-          </div>
-        ) : null}
-        <RecentBillCardActions
-          billId={bill.id}
-          billNumber={bill.bill_number}
-          balanceDue={balanceDue}
-          billTotal={Number(bill.total_amount)}
-          onEdit={onEditBill}
-          onCancelled={onBillCancelled}
-        />
+        <div className="lab-bill-card-header-main">
+          <Typography.Text strong className="doctor-list-card-name lab-bill-card-number">
+            {bill.bill_number}
+          </Typography.Text>
+          {paymentStatus ? (
+            <Tag className="lab-results-status-tag" color={paymentStatus.color}>
+              {paymentStatus.label}
+            </Tag>
+          ) : null}
+          {showResultStatus ? (
+            <Tag
+              className="lab-results-status-tag"
+              color={bill.results_completed ? 'success' : 'warning'}
+            >
+              {bill.results_completed ? 'Results completed' : 'Results pending'}
+            </Tag>
+          ) : null}
+        </div>
+        <div className="lab-bill-card-header-menu">
+          <RecentBillCardActions
+            billId={bill.id}
+            billNumber={bill.bill_number}
+            balanceDue={balanceDue}
+            billTotal={Number(bill.total_amount)}
+            onEdit={onEditBill}
+            onCancelled={onBillCancelled}
+            onPreviewPdf={onPreviewBillPdf}
+          />
+        </div>
       </div>
       <Typography.Text className="doctor-list-card-meta lab-bill-card-patient-line">
         <span className="lab-bill-card-patient-name">{bill.patient_name}</span>
@@ -138,6 +143,7 @@ export function RecentLabBillsSidebar({
   patientId = undefined,
   onEditBill,
   onBillCancelled,
+  onPreviewBillPdf,
   emptyDescription,
   selectPatientHint = 'Select a patient to load their bills.',
   resultWorklistTabs = false,
@@ -234,6 +240,7 @@ export function RecentLabBillsSidebar({
               onSelectBill={onSelectBill}
               onEditBill={onEditBill}
               onBillCancelled={onBillCancelled}
+              onPreviewBillPdf={onPreviewBillPdf}
               showResultStatus={resultWorklistTabs}
             />
           ))}

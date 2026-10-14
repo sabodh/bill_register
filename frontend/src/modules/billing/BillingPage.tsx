@@ -5,6 +5,8 @@ import { useCallback, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader';
 import { RecentLabBillsSidebar } from '../lab/RecentLabBillsSidebar';
 import { BillingPanel } from './BillingPanel';
+import { BillPdfPreviewModal } from './pdf/BillPdfPreviewModal';
+import type { BillPdfSnapshot } from './pdf/billPdfTypes';
 
 type BillingTab = {
   key: string;
@@ -33,6 +35,13 @@ export function BillingPage() {
   const [tabs, setTabs] = useState<BillingTab[]>(() => [createTab()]);
   const [activeKey, setActiveKey] = useState(() => tabs[0].key);
   const [selectedRecentBillId, setSelectedRecentBillId] = useState<number | null>(null);
+  const [pdfPreviewSnapshot, setPdfPreviewSnapshot] = useState<BillPdfSnapshot | null>(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+
+  const openBillPdfPreview = useCallback((snapshot: BillPdfSnapshot) => {
+    setPdfPreviewSnapshot(snapshot);
+    setPdfPreviewOpen(true);
+  }, []);
 
   const addTab = useCallback(() => {
     const tab = createTab();
@@ -153,6 +162,14 @@ export function BillingPage() {
 
   return (
     <>
+      <BillPdfPreviewModal
+        open={pdfPreviewOpen}
+        snapshot={pdfPreviewSnapshot}
+        onClose={() => {
+          setPdfPreviewOpen(false);
+          setPdfPreviewSnapshot(null);
+        }}
+      />
       <PageHeader
         title="Billing"
         subtitle="Bill on the left; use Edit on a recent bill to open it in a new tab."
@@ -188,6 +205,7 @@ export function BillingPage() {
                 <BillingPanel
                   billId={tab.editBillId}
                   onTitleChange={(title, dirty) => handleTitleChange(tab.key, title, dirty)}
+                  onPreviewPdf={openBillPdfPreview}
                   onSuccess={() => closeTabAfterSuccess(tab.key)}
                 />
               </div>
@@ -200,6 +218,7 @@ export function BillingPage() {
           onSelectBill={setSelectedRecentBillId}
           onEditBill={openBillForEdit}
           onBillCancelled={handleBillCancelled}
+          onPreviewBillPdf={openBillPdfPreview}
           emptyDescription="No bills yet — save a bill in this workspace first."
         />
       </div>
