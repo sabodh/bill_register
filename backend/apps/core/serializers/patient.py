@@ -93,5 +93,6 @@ class PatientSerializer(serializers.ModelSerializer):
         return patient
 
     def update(self, instance, validated_data):
+        validated_data.pop("registration_kind", None)
         validated_data["updated_by"] = self.context["request"].user
         return super().update(instance, validated_data)

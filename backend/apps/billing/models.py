@@ -33,6 +33,7 @@ class BillingItem(BranchScopedModel):
 class BillStatus(models.TextChoices):
     DRAFT = "DRAFT", "Draft"
     FINAL = "FINAL", "Final"
+    CANCELLED = "CANCELLED", "Cancelled"
 
 
 class DiscountType(models.TextChoices):
@@ -86,6 +87,11 @@ class Bill(BranchScopedModel):
         default=timezone.now,
         help_text="Sample collection date and time for lab reports.",
     )
+    sample_tested_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date and time when sample testing was completed (lab results).",
+    )
     status = models.CharField(max_length=20, choices=BillStatus.choices, default=BillStatus.DRAFT)
     subtotal_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     discount_type = models.CharField(
@@ -131,6 +137,20 @@ class BillLine(models.Model):
     bill = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name="lines")
     billing_item = models.ForeignKey(
         BillingItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bill_lines",
+    )
+    lab_test = models.ForeignKey(
+        "lab.LabTest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bill_lines",
+    )
+    lab_package = models.ForeignKey(
+        "lab.LabPackage",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

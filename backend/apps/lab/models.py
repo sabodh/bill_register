@@ -171,3 +171,26 @@ class LabTestInterpretation(models.Model):
 
     def __str__(self) -> str:
         return (self.note[:40] + "…") if len(self.note) > 40 else self.note
+
+
+class LabBillLineResult(models.Model):
+    """Entered result value for one field on a bill line (panel row, single analyte, etc.)."""
+
+    bill_line = models.ForeignKey(
+        "billing.BillLine",
+        on_delete=models.CASCADE,
+        related_name="lab_result_values",
+    )
+    result_key = models.CharField(max_length=64)
+    value = models.TextField(blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bill_line", "result_key"],
+                name="lab_bill_line_result_line_key_uniq",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"line {self.bill_line_id} / {self.result_key}"

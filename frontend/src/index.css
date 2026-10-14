@@ -212,6 +212,243 @@ body {
   max-width: 52rem;
 }
 
+.lab-results-desk-layout {
+  align-items: stretch;
+}
+
+.lab-results-desk-layout .lab-results-detail {
+  flex: 7 1 0;
+  min-width: 0;
+  max-width: 70%;
+}
+
+.lab-bills-sidebar,
+.lab-results-bills-sidebar {
+  flex: 3 1 0;
+  min-width: 0;
+  max-width: 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lab-bills-sidebar .doctor-list-panel-scroll,
+.lab-results-bills-sidebar .doctor-list-panel-scroll {
+  max-height: min(70vh, 42rem);
+  flex: 1 1 auto;
+  min-height: 12rem;
+}
+
+.billing-desk-layout {
+  align-items: stretch;
+}
+
+.billing-desk-layout .billing-workspace-main {
+  flex: 7 1 0;
+  min-width: 0;
+  max-width: 70%;
+}
+
+.billing-recent-bills-column {
+  flex: 3 1 0;
+  min-width: 0;
+  max-width: 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.billing-recent-bills-column .lab-bills-sidebar {
+  flex: 1 1 auto;
+  max-width: none;
+  width: 100%;
+}
+
+.billing-open-results-link {
+  font-size: 13px;
+  padding-left: 0.25rem;
+}
+
+.lab-results-bill-card {
+  cursor: pointer;
+}
+
+.lab-results-sidebar-hint {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 0.5rem;
+}
+
+.lab-results-worklist-tabs {
+  margin-bottom: 0.35rem;
+}
+
+.lab-results-worklist-tabs .ant-tabs-nav {
+  margin-bottom: 0.5rem;
+}
+
+.lab-bill-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.lab-bill-card-number {
+  flex: 1;
+  min-width: 0;
+}
+
+.lab-bill-card-header-end {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.lab-results-bill-status-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.lab-results-status-tag {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.3;
+  padding-inline: 0.35rem;
+}
+
+.lab-bill-card-header .doctor-list-card-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lab-bill-card-edit {
+  flex-shrink: 0;
+  padding: 0 4px !important;
+  height: auto !important;
+  font-size: 12px;
+}
+
+.lab-results-package-tag {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 0.35rem;
+}
+
+.lab-results-desk-layout .lab-all-tests-scroll {
+  max-width: none;
+  gap: 0.5rem;
+}
+
+.lab-results-detail-panel .lab-test-full-form-card {
+  padding: 0.5rem 0.85rem 0.45rem;
+}
+
+.lab-results-visit-context {
+  margin-top: 0.75rem;
+}
+
+.lab-results-visit-context .billing-add-test-hint {
+  margin-top: 0.5rem;
+}
+
+.lab-results-save-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lab-results-section-divider {
+  margin: 1rem 0 !important;
+}
+
+/* Fixed columns so result inputs line up across every test card */
+.lab-results-detail-panel {
+  --lab-result-grid-input-width: 9.5rem;
+  --lab-result-grid-result-col: 14.5rem;
+  --lab-result-grid-result-pad-left: 3.75rem;
+}
+
+.lab-results-detail-panel .lab-result-preview-multi-grid {
+  grid-template-columns:
+    minmax(0, 1fr)
+    var(--lab-result-grid-result-col)
+    minmax(14rem, 1.15fr);
+  column-gap: 2.5rem;
+}
+
+.lab-results-detail-panel .lab-result-preview-col-name {
+  padding-right: 3rem;
+}
+
+.lab-results-detail-panel .lab-result-preview-col-result {
+  display: grid;
+  grid-template-columns: var(--lab-result-grid-input-width) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.5rem;
+  width: var(--lab-result-grid-result-col);
+  max-width: var(--lab-result-grid-result-col);
+  padding-left: var(--lab-result-grid-result-pad-left);
+  box-sizing: border-box;
+}
+
+.lab-results-detail-panel .lab-result-preview-multi-grid .lab-result-preview-input {
+  width: 100%;
+  max-width: var(--lab-result-grid-input-width);
+  min-width: 0;
+}
+
+.lab-results-detail-panel .lab-result-preview-multi-grid--header span:nth-child(2) {
+  text-align: left;
+  padding-left: var(--lab-result-grid-result-pad-left);
+}
+
+.lab-results-detail-panel .lab-result-preview-input input,
+.lab-results-detail-panel .lab-result-preview-input textarea,
+.lab-results-detail-panel .lab-result-preview-input.ant-input,
+.lab-results-detail-panel .lab-result-preview-textarea textarea {
+  text-align: right;
+}
+
+.lab-results-detail-panel .lab-result-preview-input input,
+.lab-results-detail-panel .lab-result-preview-textarea textarea {
+  padding-left: 1.25rem;
+  padding-right: 0.65rem;
+}
+
+.lab-results-detail-panel .lab-result-preview-textarea.ant-input-textarea {
+  min-height: auto;
+}
+
+.lab-results-detail-panel .lab-result-preview-textarea textarea {
+  resize: vertical;
+  min-height: 1.75rem;
+  line-height: 1.45;
+}
+
+/* One column header row for the whole bill, not every test card */
+.lab-results-detail-panel .lab-test-full-form-card .lab-result-preview-multi-grid--header {
+  display: none;
+}
+
+.lab-results-detail-panel .lab-all-tests-scroll > .lab-test-full-form-card:first-child .lab-result-preview-multi-grid--header {
+  display: grid;
+}
+
+.lab-results-detail-panel .lab-result-entry-preview-label {
+  display: none;
+}
+
 .lab-all-tests-scroll--packages {
   max-width: none;
   flex-direction: row;
@@ -393,19 +630,61 @@ body {
 }
 
 .lab-result-preview-input {
-  max-width: 8rem;
+  flex: 1;
+  min-width: 6.5rem;
+  max-width: 11rem;
 }
 
 .lab-result-preview-multi-table {
   font-size: 14px;
   line-height: 1.45;
+  width: 100%;
+}
+
+.lab-result-preview-panel-heading {
+  margin-bottom: 0.35rem;
+}
+
+.lab-result-preview-panel-title {
+  display: block;
+}
+
+.lab-result-preview-method {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 0.15rem;
+}
+
+.lab-result-preview-department {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 0.2rem;
+  line-height: 1.35;
+}
+
+.lab-result-preview-test-name {
+  line-height: 1.35;
 }
 
 .lab-result-preview-multi-grid {
   display: grid;
-  grid-template-columns: minmax(7rem, 1.15fr) minmax(5.5rem, 0.75fr) minmax(11rem, 1.6fr);
-  column-gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) minmax(10rem, max-content) minmax(12rem, max-content);
+  column-gap: 2rem;
   align-items: start;
+}
+
+.lab-result-preview-multi-grid--header span:nth-child(3) {
+  text-align: right;
+}
+
+.lab-result-preview-multi-grid--row {
+  padding: 0.55rem 0;
+}
+
+.lab-result-preview-multi-grid--row:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .lab-result-preview-multi-grid--header {
@@ -417,13 +696,28 @@ body {
 
 .lab-result-preview-col-name {
   font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding-right: 1.25rem;
+}
+
+.lab-result-preview-col-name .lab-result-preview-test-name {
+  font-weight: 600;
+}
+
+.lab-result-preview-col-name .lab-result-preview-department {
+  font-weight: 400;
+  margin-top: 0.25rem;
 }
 
 .lab-result-preview-col-result {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .lab-result-preview-unit {
@@ -434,7 +728,9 @@ body {
 .lab-result-preview-col-ref {
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 0.15rem;
+  text-align: right;
 }
 
 .lab-result-preview-ref-line {
@@ -443,8 +739,14 @@ body {
 }
 
 .lab-result-preview-multi-grid .lab-result-preview-input {
-  max-width: 4.5rem;
-  min-width: 3rem;
+  width: 9.5rem;
+  max-width: 9.5rem;
+  min-width: 6.5rem;
+  flex: 0 0 auto;
+}
+
+.lab-result-preview-input input {
+  text-align: right;
 }
 
 @media (max-width: 520px) {
@@ -668,6 +970,31 @@ body {
   }
 
   .lab-workspace-browse-panel {
+    flex: 1 1 auto;
+    max-width: none;
+    width: 100%;
+  }
+
+  .lab-results-desk-layout .lab-results-detail {
+    flex: 1 1 auto;
+    max-width: none;
+    width: 100%;
+  }
+
+  .lab-bills-sidebar,
+  .lab-results-bills-sidebar {
+    flex: 1 1 auto;
+    max-width: none;
+    width: 100%;
+  }
+
+  .billing-desk-layout .billing-workspace-main {
+    flex: 1 1 auto;
+    max-width: none;
+    width: 100%;
+  }
+
+  .billing-recent-bills-column {
     flex: 1 1 auto;
     max-width: none;
     width: 100%;

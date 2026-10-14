@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.billing.services.lab_catalog import sync_lab_package_billing_item, sync_lab_test_billing_item
 from apps.lab.models import (
     LabPackage,
     LabPackageItem,
@@ -172,6 +173,7 @@ class LabPackageWriteSerializer(serializers.ModelSerializer):
             validated_data["branch_id"] = user.branch_id
         package = super().create(validated_data)
         _sync_package_items(package, items_data)
+        sync_lab_package_billing_item(package)
         return package
 
     def update(self, instance, validated_data):
@@ -180,6 +182,7 @@ class LabPackageWriteSerializer(serializers.ModelSerializer):
         package = super().update(instance, validated_data)
         if items_data is not None:
             _sync_package_items(package, items_data)
+        sync_lab_package_billing_item(package)
         return package
 
 
@@ -224,6 +227,7 @@ class LabTestSerializer(serializers.ModelSerializer):
         test = super().create(validated_data)
         _sync_reference_ranges(test, ranges)
         _sync_interpretations(test, notes)
+        sync_lab_test_billing_item(test)
         return test
 
     def update(self, instance, validated_data):
@@ -235,4 +239,5 @@ class LabTestSerializer(serializers.ModelSerializer):
             _sync_reference_ranges(test, ranges)
         if notes is not None:
             _sync_interpretations(test, notes)
+        sync_lab_test_billing_item(test)
         return test

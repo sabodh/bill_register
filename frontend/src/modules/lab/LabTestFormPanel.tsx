@@ -131,6 +131,9 @@ export function LabTestFormPanel({
   const watchedTestType = watch('test_type');
   const watchedMethod = watch('method_name');
   const watchedRanges = watch('reference_ranges');
+  const watchedDepartment = watch('department');
+  const watchedDepartmentName =
+    departmentOptions.find((d) => d.value === watchedDepartment)?.label ?? '';
   const rangeSection = useMemo(() => getRangeSectionMeta(watchedTestType), [watchedTestType]);
 
   const onTitleChangeRef = useRef(onTitleChange);
@@ -463,6 +466,7 @@ export function LabTestFormPanel({
           testType={watchedTestType}
           title={watchedName}
           methodName={watchedMethod ?? ''}
+          departmentName={watchedDepartmentName}
           draftRanges={watchedRanges}
         />
       </div>

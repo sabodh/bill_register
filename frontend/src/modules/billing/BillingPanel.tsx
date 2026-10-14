@@ -8,16 +8,28 @@ import {
   Select,
   Space,
   Table,
+  Tooltip,
   Typography,
   message,
 } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiClient } from '../../api/client';
-import type { BillingItem, Branch, Doctor, Paginated, Patient } from '../../api/types/models';
+import type {
+  BillDetailRecord,
+  BillRecord,
+  Branch,
+  Doctor,
+  LabPackageRecord,
+  LabTestRecord,
+  Paginated,
+  Patient,
+} from '../../api/types/models';
+import { ErrorBlock, LoadingBlock } from '../../components/QueryState';
 import { useAuth } from '../../auth/AuthContext';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
@@ -30,10 +42,50 @@ function formatAgeSex(patient: Patient) {
 type GridLine = {
   key: string;
   billing_item: number | null;
+  labTestId?: number;
+  labPackageId?: number;
   description: string;
   quantity: number;
   unit_price: number;
 };
+
+type LabPickerOption = {
+  value: string;
+  label: string;
+  disabled?: boolean;
+  kind: 'test' | 'package';
+  test?: LabTestRecord;
+  package?: LabPackageRecord;
+};
+
+function lineCatalogKey(line: GridLine): string | null {
+  if (line.labTestId != null) {
+    return `test:${line.labTestId}`;
+  }
+  if (line.labPackageId != null) {
+    return `package:${line.labPackageId}`;
+  }
+  if (line.billing_item != null) {
+    return `item:${line.billing_item}`;
+  }
+  return null;
+}
+
+function formatTestPickerLabel(test: LabTestRecord) {
+  const rate = formatMoney(Number(test.default_rate));
+  const code = test.code ? `Code: ${test.code}` : '';
+  const method = test.method_name?.trim() ? `Method: ${test.method_name.trim()}` : '';
+  const meta = [code, method].filter(Boolean).join(' - ');
+  const dept = test.department_detail?.name ?? '';
+  const tail = [dept, rate].filter(Boolean).join(' · ');
+  return [test.name, meta, tail].filter(Boolean).join(' — ');
+}
+
+function formatPackagePickerLabel(pkg: LabPackageRecord) {
+  const rate = formatMoney(Number(pkg.package_amount));
+  const count = `${pkg.items.length} test${pkg.items.length === 1 ? '' : 's'}`;
+  return `${pkg.name} (Package) — ${count} · ${rate}`;
+}
 
 function lineAmount(line: GridLine) {
   return Number((line.quantity * line.unit_price).toFixed(2));
@@ -41,6 +93,46 @@ function lineAmount(line: GridLine) {
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
+}
+
+function billSaveErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.startsWith('Transaction')) {
+    return error.message;
+  }
+  if (isAxiosError(error)) {
+    const data = error.response?.data;
+    if (typeof data === 'string' && data.trim()) {
+      const text = data.trim();
+      if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
+        const title = text.match(/<pre class="exception_value">([^<]*)<\/pre>/i)?.[1];
+        if (title) {
+          return title.replace(/&#x27;/g, "'");
+        }
+        return 'Server error while saving the bill. Restart the Django API (Stop → ▶ Debug Full Stack).';
+      }
+      return text.length > 240 ? `${text.slice(0, 240)}…` : text;
+    }
+    if (data && typeof data === 'object') {
+      if ('detail' in data && typeof data.detail === 'string') {
+        return data.detail;
+      }
+      const parts: string[] = [];
+      for (const [key, val] of Object.entries(data)) {
+        if (Array.isArray(val)) {
+          parts.push(`${key}: ${val.map(String).join(' ')}`);
+        } else if (typeof val === 'string') {
+          parts.push(key === 'non_field_errors' ? val : `${key}: ${val}`);
+        }
+      }
+      if (parts.length > 0) {
+        return parts.join(' · ');
+      }
+    }
+    if (error.response?.status === 500) {
+      return 'Server error while saving the bill. Restart the API (debug runs with --noreload).';
+    }
+  }
+  return 'Could not save bill';
 }
 
 type DiscountType = 'NONE' | 'PERCENT' | 'AMOUNT';
@@ -65,11 +157,13 @@ function computeBillTotals(
 }
 
 type BillingPanelProps = {
+  billId?: number;
   onTitleChange?: (title: string, dirty: boolean) => void;
   onSuccess?: () => void;
 };
 
-export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
+export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelProps) {
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const defaultHospitalId = user?.branch ?? null;
 
@@ -80,6 +174,7 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
   const [hospitalId, setHospitalId] = useState<number | null>(defaultHospitalId);
   const [hospitalSearch, setHospitalSearch] = useState(() => user?.branch_detail?.name ?? '');
   const [sampleCollectedAt, setSampleCollectedAt] = useState<Dayjs>(() => dayjs());
+  const [sampleTestedAt, setSampleTestedAt] = useState<Dayjs | null>(null);
 
   const [search, setSearch] = useState('');
   const [lines, setLines] = useState<GridLine[]>([]);
@@ -92,6 +187,14 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
   const debouncedPatientSearch = useDebouncedValue(patientSearch, 300);
   const debouncedDoctorSearch = useDebouncedValue(doctorSearch, 300);
   const debouncedHospitalSearch = useDebouncedValue(hospitalSearch, 300);
+  const hydratedBillId = useRef<number | null>(null);
+
+  const billQuery = useQuery({
+    queryKey: ['billing', 'bill', billId],
+    enabled: billId != null,
+    queryFn: async () =>
+      (await apiClient.get<BillDetailRecord>(`/billing/bills/${billId}/`)).data,
+  });
 
   const patientsQuery = useQuery({
     queryKey: ['patients', 'billing-lookup', debouncedPatientSearch],
@@ -161,54 +264,100 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
     [branchesQuery.data],
   );
 
-  const itemsQuery = useQuery({
-    queryKey: ['billing-items', debouncedSearch],
+  const labCatalogQuery = useQuery({
+    queryKey: ['billing', 'lab-catalog', debouncedSearch],
     queryFn: async () => {
-      const { data } = await apiClient.get<Paginated<BillingItem>>('/billing/items/', {
-        params: { search: debouncedSearch || undefined, page_size: 20 },
-      });
-      return data.results;
+      const params = { search: debouncedSearch || undefined, page_size: 100 };
+      const [testsRes, packagesRes] = await Promise.all([
+        apiClient.get<Paginated<LabTestRecord>>('/lab/tests/', { params }),
+        apiClient.get<Paginated<LabPackageRecord>>('/lab/packages/', { params }),
+      ]);
+      return { tests: testsRes.data.results, packages: packagesRes.data.results };
     },
   });
 
-  const selectedBillingItemIds = useMemo(
-    () => new Set(lines.map((row) => row.billing_item).filter((id): id is number => id != null)),
+  const selectedCatalogKeys = useMemo(
+    () =>
+      new Set(
+        lines.map((row) => lineCatalogKey(row)).filter((key): key is string => key != null),
+      ),
     [lines],
   );
 
-  const options = useMemo(
-    () =>
-      (itemsQuery.data ?? []).map((item) => {
-        const alreadyAdded = selectedBillingItemIds.has(item.id);
-        return {
-          value: String(item.id),
-          label: alreadyAdded
-            ? `${item.name} — ${formatMoney(Number(item.default_rate))} (already added)`
-            : `${item.name} — ${formatMoney(Number(item.default_rate))}`,
-          item,
-          disabled: alreadyAdded,
-        };
-      }),
-    [itemsQuery.data, selectedBillingItemIds],
-  );
-
-  const addLineFromItem = (item: BillingItem) => {
-    setLines((prev) => {
-      if (prev.some((row) => row.billing_item === item.id)) {
-        message.warning(`"${item.name}" is already on this bill. Change quantity on that row.`);
-        return prev;
-      }
-      return [
-        ...prev,
-        {
-          key: `row-${item.id}-${Date.now()}`,
-          billing_item: item.id,
-          description: item.name,
-          quantity: 1,
-          unit_price: Number(item.default_rate),
-        },
-      ];
+  const options = useMemo((): LabPickerOption[] => {
+    const tests = labCatalogQuery.data?.tests ?? [];
+    const packages = labCatalogQuery.data?.packages ?? [];
+    const testOptions: LabPickerOption[] = tests.map((test) => {
+      const catalogKey = `test:${test.id}`;
+      const alreadyAdded = selectedCatalogKeys.has(catalogKey);
+      return {
+        value: catalogKey,
+        kind: 'test',
+        test,
+        disabled: alreadyAdded,
+        label: alreadyAdded
+          ? `${formatTestPickerLabel(test)} (already added)`
+          : formatTestPickerLabel(test),
+      };
     });
+    const packageOptions: LabPickerOption[] = packages.map((pkg) => {
+      const catalogKey = `package:${pkg.id}`;
+      const alreadyAdded = selectedCatalogKeys.has(catalogKey);
+      return {
+        value: catalogKey,
+        kind: 'package',
+        package: pkg,
+        disabled: alreadyAdded,
+        label: alreadyAdded
+          ? `${formatPackagePickerLabel(pkg)} (already added)`
+          : formatPackagePickerLabel(pkg),
+      };
+    });
+    return [...testOptions, ...packageOptions];
+  }, [labCatalogQuery.data, selectedCatalogKeys]);
+
+  const addLineFromPicker = (option: LabPickerOption) => {
+    if (option.kind === 'test' && option.test) {
+      const test = option.test;
+      const catalogKey = `test:${test.id}`;
+      setLines((prev) => {
+        if (prev.some((row) => lineCatalogKey(row) === catalogKey)) {
+          message.warning(`"${test.name}" is already on this bill. Change quantity on that row.`);
+          return prev;
+        }
+        return [
+          ...prev,
+          {
+            key: `row-test-${test.id}-${Date.now()}`,
+            billing_item: null,
+            labTestId: test.id,
+            description: test.name,
+            quantity: 1,
+            unit_price: Number(test.default_rate),
+          },
+        ];
+      });
+    } else if (option.kind === 'package' && option.package) {
+      const pkg = option.package;
+      const catalogKey = `package:${pkg.id}`;
+      setLines((prev) => {
+        if (prev.some((row) => lineCatalogKey(row) === catalogKey)) {
+          message.warning(`"${pkg.name}" is already on this bill. Change quantity on that row.`);
+          return prev;
+        }
+        return [
+          ...prev,
+          {
+            key: `row-package-${pkg.id}-${Date.now()}`,
+            billing_item: null,
+            labPackageId: pkg.id,
+            description: pkg.name,
+            quantity: 1,
+            unit_price: Number(pkg.package_amount),
+          },
+        ];
+      });
+    }
     setSearch('');
   };
 
@@ -228,6 +377,21 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
 
   const needsTransactionId = paymentMethod === 'UPI' || paymentMethod === 'CARD';
 
+  const saveDisabledReason = useMemo(() => {
+    if (!selectedPatient && lines.length === 0) {
+      return 'Select a patient from the list and add at least one test or package.';
+    }
+    if (!selectedPatient) {
+      return 'Pick a patient from the search results — typing alone does not link a patient.';
+    }
+    if (lines.length === 0) {
+      return 'Add at least one test or package to this bill.';
+    }
+    return null;
+  }, [selectedPatient, lines.length]);
+
+  const canSave = saveDisabledReason === null;
+
   const hasDraft =
     selectedPatient !== null ||
     lines.length > 0 ||
@@ -245,6 +409,7 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
     setHospitalId(defaultHospitalId);
     setHospitalSearch(user?.branch_detail?.name ?? '');
     setSampleCollectedAt(dayjs());
+    setSampleTestedAt(null);
     setLines([]);
     setDiscountType('NONE');
     setDiscountPercent(0);
@@ -265,20 +430,66 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
     }
   };
 
+  useEffect(() => {
+    if (billId == null) {
+      hydratedBillId.current = null;
+      return;
+    }
+    const bill = billQuery.data;
+    if (!bill || bill.id !== billId) {
+      return;
+    }
+    if (hydratedBillId.current === billId) {
+      return;
+    }
+    hydratedBillId.current = billId;
+
+    if (bill.patient_detail) {
+      selectPatient(bill.patient_detail);
+    }
+    setDoctorId(bill.doctor);
+    setDoctorSearch(bill.doctor_name);
+    setHospitalId(bill.hospital);
+    setHospitalSearch(bill.hospital_name || (user?.branch_detail?.name ?? ''));
+    setSampleCollectedAt(dayjs(bill.sample_collected_at));
+    setSampleTestedAt(bill.sample_tested_at ? dayjs(bill.sample_tested_at) : null);
+    setDiscountType(bill.discount_type);
+    setDiscountPercent(Number(bill.discount_percent));
+    setDiscountAmount(Number(bill.discount_amount));
+    setPaymentMethod(bill.payment_method);
+    setPaymentTransactionId(bill.payment_transaction_id ?? '');
+    setLines(
+      bill.lines.map((line, index) => ({
+        key: `line-${line.id}-${index}`,
+        billing_item: line.billing_item,
+        labTestId: line.lab_test ?? undefined,
+        labPackageId: line.lab_package ?? undefined,
+        description: line.description,
+        quantity: Number(line.quantity),
+        unit_price: Number(line.unit_price),
+      })),
+    );
+    setSearch('');
+  }, [billId, billQuery.data, user?.branch_detail?.name]);
+
   const onTitleChangeRef = useRef(onTitleChange);
   onTitleChangeRef.current = onTitleChange;
   const lastTitleReport = useRef<{ title: string; dirty: boolean } | null>(null);
 
   useEffect(() => {
     const dirty = hasDraft;
-    const title = selectedPatient?.name.trim() || lines[0]?.description?.trim() || '';
+    const title =
+      (billId != null && billQuery.data?.bill_number) ||
+      selectedPatient?.name.trim() ||
+      lines[0]?.description?.trim() ||
+      '';
     const prev = lastTitleReport.current;
     if (prev && prev.title === title && prev.dirty === dirty) {
       return;
     }
     lastTitleReport.current = { title, dirty };
     onTitleChangeRef.current?.(title, dirty);
-  }, [hasDraft, lines, selectedPatient]);
+  }, [hasDraft, lines, selectedPatient, billId, billQuery.data?.bill_number]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -291,32 +502,54 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
       if (needsTransactionId && !paymentTransactionId.trim()) {
         throw new Error('Transaction ID is required for UPI and Card');
       }
-      await apiClient.post('/billing/bills/', {
+      const payload = {
         patient: selectedPatient.id,
         doctor: doctorId,
         doctor_name: doctorSearch.trim(),
         hospital: hospitalId,
         hospital_name: hospitalSearch.trim(),
         sample_collected_at: sampleCollectedAt.toISOString(),
+        sample_tested_at: sampleTestedAt ? sampleTestedAt.toISOString() : null,
         discount_type: discountType,
         discount_percent: discountType === 'PERCENT' ? discountPercent : 0,
         discount_amount: discountType === 'AMOUNT' ? discountAmount : 0,
         payment_method: paymentMethod,
         payment_transaction_id: needsTransactionId ? paymentTransactionId.trim() : '',
         lines: lines.map((row) => ({
-          billing_item: row.billing_item,
+          billing_item: row.billing_item ?? undefined,
+          lab_test: row.labTestId ?? undefined,
+          lab_package: row.labPackageId ?? undefined,
           description: row.description,
           quantity: row.quantity,
           unit_price: row.unit_price,
         })),
-      });
+      };
+      if (billId != null) {
+        const { data } = await apiClient.put<BillRecord>(`/billing/bills/${billId}/`, payload);
+        return data;
+      }
+      const { data } = await apiClient.post<BillRecord>('/billing/bills/', payload);
+      return data;
     },
-    onSuccess: () => {
-      message.success('Bill saved');
-      onSuccess?.();
+    onSuccess: (bill) => {
+      message.success(
+        billId != null ? `Bill updated — ${bill.bill_number}` : `Bill saved — ${bill.bill_number}`,
+      );
+      void queryClient.invalidateQueries({ queryKey: ['lab', 'result-bills'] });
+      void queryClient.invalidateQueries({ queryKey: ['billing', 'bill', billId] });
+      if (billId == null) {
+        onSuccess?.();
+      }
     },
-    onError: () => message.error('Could not save bill'),
+    onError: (error) => message.error(billSaveErrorMessage(error)),
   });
+
+  if (billId != null && billQuery.isLoading) {
+    return <LoadingBlock />;
+  }
+  if (billId != null && billQuery.isError) {
+    return <ErrorBlock message="Could not load bill for editing" />;
+  }
 
   return (
     <>
@@ -326,6 +559,7 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
           style={{ width: '100%', maxWidth: 520 }}
           value={patientSearch}
           options={patientOptions}
+          status={patientSearch.trim() && !selectedPatient ? 'warning' : undefined}
           onSearch={(value) => {
             setPatientSearch(value);
             if (!value.trim()) {
@@ -352,6 +586,11 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
             setPatientSearch('');
           }}
         />
+        {patientSearch.trim() && !selectedPatient && (
+          <Typography.Paragraph type="warning" className="billing-add-test-hint">
+            Choose a patient from the dropdown (search needs at least 2 characters).
+          </Typography.Paragraph>
+        )}
         {selectedPatient && (
           <div className="billing-patient-summary">
             <dl className="billing-patient-summary-col">
@@ -434,15 +673,30 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
             <DatePicker
               showTime
               format="DD MMM YYYY, hh:mm A"
+              style={{ width: '100%' }}
               value={sampleCollectedAt}
               onChange={(value) => value && setSampleCollectedAt(value)}
+            />
+          </div>
+          <div className="billing-context-field">
+            <Typography.Text type="secondary" className="billing-grid-label">
+              Sample tested
+            </Typography.Text>
+            <DatePicker
+              showTime
+              format="DD MMM YYYY, hh:mm A"
+              style={{ width: '100%' }}
+              value={sampleTestedAt}
+              onChange={(value) => setSampleTestedAt(value)}
+              allowClear
+              onClear={() => setSampleTestedAt(null)}
             />
           </div>
         </div>
       </div>
 
       <div className="billing-form-section">
-        <Typography.Text strong className="billing-form-section-title">Add test</Typography.Text>
+        <Typography.Text strong className="billing-form-section-title">Add test or package</Typography.Text>
         <AutoComplete
           style={{ width: '100%', maxWidth: 520 }}
           options={options}
@@ -451,15 +705,15 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
           onSelect={(value) => {
             const match = options.find((o) => o.value === value);
             if (match) {
-              addLineFromItem(match.item);
+              addLineFromPicker(match);
             }
           }}
-          placeholder="Search test name or code"
-          notFoundContent={itemsQuery.isLoading ? 'Loading…' : 'No tests found'}
-          onFocus={() => itemsQuery.refetch()}
+          placeholder="Search lab test or package name"
+          notFoundContent={labCatalogQuery.isLoading ? 'Loading…' : 'No tests or packages found'}
+          onFocus={() => labCatalogQuery.refetch()}
         />
         <Typography.Paragraph type="secondary" className="billing-add-test-hint">
-          Pick a test to add it under Tests selected.
+          Loaded from lab tests and packages you saved under Lab → Test / Package.
         </Typography.Paragraph>
       </div>
 
@@ -526,15 +780,19 @@ export function BillingPanel({ onTitleChange, onSuccess }: BillingPanelProps) {
                   </div>
                 )}
                 <Space className="billing-checkout-actions" wrap>
-                  <Button
-                    type="primary"
-                    size="middle"
-                    onClick={() => saveMutation.mutate()}
-                    loading={saveMutation.isPending}
-                    disabled={lines.length === 0 || !selectedPatient}
-                  >
-                    Save
-                  </Button>
+                  <Tooltip title={saveDisabledReason ?? undefined}>
+                    <span className="billing-save-button-wrap">
+                      <Button
+                        type="primary"
+                        size="middle"
+                        onClick={() => saveMutation.mutate()}
+                        loading={saveMutation.isPending}
+                        disabled={!canSave}
+                      >
+                        {billId != null ? 'Update bill' : 'Save bill'}
+                      </Button>
+                    </span>
+                  </Tooltip>
                   <Popconfirm
                     title="Discard this bill?"
                     description="Tests selected, discount, and payment details will be cleared."

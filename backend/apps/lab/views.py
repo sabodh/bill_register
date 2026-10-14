@@ -1,9 +1,20 @@
-from rest_framework import status
+from django.db.models import Q
+from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.billing.services.lab_catalog import sync_lab_package_billing_item, sync_lab_test_billing_item
 from apps.core import permissions as perms
 from apps.core.permissions_classes import HasAnyPerm, HasPerm
+from apps.core.mixins import BranchFilterMixin
 from apps.core.views.base import CoreModelViewSet
+from apps.lab.result_serializers import (
+    LabResultBillDetailSerializer,
+    LabResultBillListSerializer,
+    LabResultSaveSerializer,
+)
+from apps.lab.services.result_completion import bill_results_completed
+from apps.lab.services.result_worklist import lab_result_bills_base_queryset
 from apps.lab.filters import LabPackageFilter, LabTestFilter, TestDepartmentFilter
 from apps.lab.models import LabPackage, LabTest, TestDepartment
 from apps.lab.serializers import (
@@ -35,6 +46,11 @@ class TestDepartmentViewSet(CoreModelViewSet):
 
 class LabPackageViewSet(CoreModelViewSet):
     filterset_class = LabPackageFilter
+
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        instance.refresh_from_db(fields=["is_active"])
+        sync_lab_package_billing_item(instance)
     search_fields = ["name"]
     ordering_fields = ["name", "created_at", "package_amount"]
     permission_classes = [HasPerm(perms.LAB_VIEW_TEST)]
@@ -89,6 +105,11 @@ class LabPackageViewSet(CoreModelViewSet):
 
 class LabTestViewSet(CoreModelViewSet):
     serializer_class = LabTestSerializer
+
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        instance.refresh_from_db(fields=["is_active"])
+        sync_lab_test_billing_item(instance)
     filterset_class = LabTestFilter
     search_fields = ["name", "code"]
     ordering_fields = ["name", "created_at", "code"]
@@ -106,3 +127,75 @@ class LabTestViewSet(CoreModelViewSet):
             .filter(is_active=True)
         )
         return self.get_branch_filtered_queryset(qs)
+
+
+class LabResultBillViewSet(BranchFilterMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """Final lab bills from billing — worklist for result entry."""
+
+    permission_classes = [HasPerm(perms.LAB_VIEW_TEST)]
+    lookup_value_regex = r"[0-9]+"
+
+    def get_permissions(self):
+        if self.action == "save_results":
+            return [HasAnyPerm(perms.LAB_ADD_ORDER, perms.BILLING_ADD_BILL)()]
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return LabResultBillDetailSerializer
+        return LabResultBillListSerializer
+
+    def list(self, request, *args, **kwargs):
+        results_status = (request.query_params.get("results_status") or "").strip().lower()
+        queryset = self.filter_queryset(self.get_queryset())
+        if results_status in ("pending", "completed"):
+            queryset = queryset.prefetch_related(
+                "lines__lab_result_values",
+                "lines__lab_test",
+                "lines__lab_package__items__test",
+                "lines__billing_item",
+            )
+            matching_ids = []
+            for bill in queryset:
+                complete = bill_results_completed(bill)
+                if results_status == "completed" and complete:
+                    matching_ids.append(bill.id)
+                elif results_status == "pending" and not complete:
+                    matching_ids.append(bill.id)
+            queryset = queryset.filter(id__in=matching_ids)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        qs = lab_result_bills_base_queryset()
+        qs = self.get_branch_filtered_queryset(qs)
+        qs = qs.filter(
+            Q(lines__lab_test__isnull=False)
+            | Q(lines__lab_package__isnull=False)
+            | Q(lines__billing_item__code__startswith="LAB-T-")
+            | Q(lines__billing_item__code__startswith="LAB-P-")
+        ).distinct()
+        patient_id = self.request.query_params.get("patient")
+        if patient_id:
+            qs = qs.filter(patient_id=patient_id)
+        search = (self.request.query_params.get("search") or "").strip()
+        if search:
+            qs = qs.filter(
+                Q(bill_number__icontains=search)
+                | Q(patient__name__icontains=search)
+                | Q(patient__uhid__icontains=search)
+            )
+        return qs
+
+    @action(detail=True, methods=["post"], url_path="save-results")
+    def save_results(self, request, pk=None):
+        bill = self.get_object()
+        serializer = LabResultSaveSerializer(data=request.data, context=self.get_serializer_context())
+        serializer.is_valid(raise_exception=True)
+        bill = serializer.save(bill)
+        output = LabResultBillDetailSerializer(bill, context=self.get_serializer_context())
+        return Response(output.data)

@@ -51,6 +51,7 @@ export function PatientRegistrationPanel({
   const [revisitPatientSearch, setRevisitPatientSearch] = useState('');
   const [selectedRevisitPatient, setSelectedRevisitPatient] = useState<Patient | null>(null);
   const dobAgeLock = useRef<'dob' | 'age' | null>(null);
+  const hydratedPatientId = useRef<number | null>(null);
   const debouncedDoctorSearch = useDebouncedValue(doctorSearch, 300);
   const debouncedRevisitSearch = useDebouncedValue(revisitPatientSearch, 300);
 
@@ -156,24 +157,43 @@ export function PatientRegistrationPanel({
   }, [watchedAge, setValue, watchedDob]);
 
   useEffect(() => {
-    if (data) {
-      reset({
-        name: data.name,
-        gender: data.gender,
-        date_of_birth: data.date_of_birth ?? '',
-        age: data.age_years,
-        phone: data.phone,
-        address: data.address,
-        file_number: data.file_number ?? '',
-        doctor: data.doctor,
-        branch: data.branch,
-      });
-      if (data.doctor_detail) {
-        setSelectedDoctor(data.doctor_detail);
-        setDoctorSearch(data.doctor_detail.name);
-      }
+    if (!isEdit) {
+      hydratedPatientId.current = null;
+      return;
     }
-  }, [data, reset]);
+    if (!data) {
+      return;
+    }
+    if (hydratedPatientId.current === data.id) {
+      return;
+    }
+    hydratedPatientId.current = data.id;
+    const dobForInput = data.date_of_birth ? data.date_of_birth.slice(0, 10) : '';
+    reset({
+      registration_kind: 'NEW_OP',
+      revisit_patient_id: null,
+      name: data.name,
+      gender: data.gender,
+      date_of_birth: dobForInput,
+      age: data.age_years,
+      phone: data.phone,
+      address: data.address,
+      file_number: data.file_number ?? '',
+      doctor: data.doctor,
+      branch: data.branch,
+    });
+    if (data.doctor_detail) {
+      setSelectedDoctor(data.doctor_detail);
+      setDoctorSearch(data.doctor_detail.name);
+    } else {
+      setSelectedDoctor(null);
+      setDoctorSearch('');
+    }
+  }, [data, reset, isEdit]);
+
+  useEffect(() => {
+    hydratedPatientId.current = null;
+  }, [patientId]);
 
   useEffect(() => {
     if (!pendingDoctorId || isEdit) {
@@ -306,7 +326,10 @@ export function PatientRegistrationPanel({
       let patient: Patient;
       if (isEdit && patientId) {
         const { registration_kind: _rk, ...editPayload } = payload;
-        const { data: updated } = await apiClient.patch<Patient>(`/patients/${patientId}/`, editPayload);
+        const { data: updated } = await apiClient.patch<Patient>(`/patients/${patientId}/`, {
+          ...editPayload,
+          name: (values.name ?? '').trim(),
+        });
         patient = updated;
       } else {
         const { data: created } = await apiClient.post<Patient>('/patients/', payload);
@@ -343,11 +366,39 @@ export function PatientRegistrationPanel({
     onSuccess: async (patient) => {
       await queryClient.invalidateQueries({ queryKey: ['patients'] });
       await queryClient.invalidateQueries({ queryKey: ['doctors', 'op-tokens'] });
+      if (isEdit && patientId) {
+        queryClient.setQueryData(['patient', patientId], patient);
+        hydratedPatientId.current = patient.id;
+        const dobForInput = patient.date_of_birth ? patient.date_of_birth.slice(0, 10) : '';
+        reset({
+          registration_kind: 'NEW_OP',
+          revisit_patient_id: null,
+          name: patient.name,
+          gender: patient.gender,
+          date_of_birth: dobForInput,
+          age: patient.age_years,
+          phone: patient.phone,
+          address: patient.address,
+          file_number: patient.file_number ?? '',
+          doctor: patient.doctor,
+          branch: patient.branch,
+        });
+        if (patient.doctor_detail) {
+          setSelectedDoctor(patient.doctor_detail);
+          setDoctorSearch(patient.doctor_detail.name);
+        }
+      }
       const tokenNote = !isEdit && patient.op_token ? ` — Token ${patient.op_token}` : '';
       message.success(isEdit ? 'Patient updated' : `Registered ${patient.uhid}${tokenNote}`);
       onSuccess?.(patient);
     },
-    onError: () => message.error('Could not save registration'),
+    onError: (error) => {
+      const detail =
+        error && typeof error === 'object' && 'response' in error
+          ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : undefined;
+      message.error(typeof detail === 'string' ? detail : 'Could not save registration');
+    },
   });
 
   if (isEdit && isLoading) {

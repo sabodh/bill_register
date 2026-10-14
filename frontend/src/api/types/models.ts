@@ -255,3 +255,108 @@ export interface BillingItem {
   branch: number;
   is_active: boolean;
 }
+
+export interface BillLineRecord {
+  id: number;
+  billing_item: number | null;
+  lab_test: number | null;
+  lab_package: number | null;
+  item_type: string;
+  description: string;
+  quantity: string;
+  unit_price: string;
+  amount: string;
+  sort_order: number;
+}
+
+export interface BillRecord {
+  id: number;
+  bill_number: string;
+  patient: number | null;
+  status: string;
+  total_amount: string;
+  sample_collected_at: string;
+  sample_tested_at?: string | null;
+  created_at: string;
+}
+
+export interface BillDetailRecord extends BillRecord {
+  doctor: number | null;
+  doctor_name: string;
+  hospital: number | null;
+  hospital_name: string;
+  sample_tested_at: string | null;
+  subtotal_amount: string;
+  discount_type: 'NONE' | 'PERCENT' | 'AMOUNT';
+  discount_percent: string;
+  discount_amount: string;
+  discount_applied: string;
+  payment_method: 'CASH' | 'UPI' | 'CARD' | 'CREDIT';
+  payment_transaction_id: string;
+  notes: string;
+  lines: BillLineRecord[];
+  patient_detail: Patient | null;
+}
+
+export interface LabResultBillSummary {
+  id: number;
+  bill_number: string;
+  patient: number;
+  patient_name: string;
+  patient_uhid: string;
+  sample_collected_at: string;
+  doctor_name: string;
+  hospital_name: string;
+  total_amount: string;
+  work_item_count: number;
+  billing_completed: boolean;
+  results_completed: boolean;
+  result_slots_filled: number;
+  result_slots_total: number;
+  created_at: string;
+}
+
+export interface LabSavedResult {
+  bill_line_id: number;
+  lab_test_id: number;
+  result_key: string;
+  value: string;
+}
+
+export interface LabResultWorkItem {
+  bill_line_id: number;
+  lab_test_id: number;
+  test_name: string;
+  test_code: string;
+  method_name: string;
+  department_name: string;
+  test_type: LabTestType;
+  from_package: boolean;
+  package_name: string | null;
+  result_entry_layout: LabResultEntryLayout;
+}
+
+export interface LabResultBillDetail {
+  id: number;
+  bill_number: string;
+  patient: number;
+  patient_detail: {
+    id: number;
+    uhid: string;
+    name: string;
+    gender: string;
+    age_years: number | null;
+    phone: string;
+  } | null;
+  doctor: number | null;
+  doctor_name: string;
+  hospital: number | null;
+  hospital_name: string;
+  sample_collected_at: string;
+  sample_tested_at: string | null;
+  total_amount: string;
+  notes: string;
+  work_items: LabResultWorkItem[];
+  saved_results: LabSavedResult[];
+  created_at: string;
+}
