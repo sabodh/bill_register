@@ -1228,6 +1228,58 @@ body {
   min-height: 12rem;
 }
 
+.reports-summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.reports-lab-bills-layout .ant-tabs-nav {
+  margin-bottom: 0.75rem;
+}
+
+.reports-print-meta {
+  display: none;
+}
+
+@media print {
+  .app-shell-sider,
+  .app-shell-header,
+  .reports-no-print,
+  .reports-lab-bills-layout .ant-tabs-nav,
+  .ant-table-pagination {
+    display: none !important;
+  }
+
+  .ant-layout-content {
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .reports-print-meta {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 12px;
+    color: #333;
+  }
+
+  .reports-print-area .ant-card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .reports-print-area .ant-card-body {
+    padding: 0 !important;
+  }
+
+  .reports-summary-row {
+    border-bottom-color: #ccc;
+  }
+}
+
 .bill-pdf-preview-frame {
   flex: 1;
   width: 100%;

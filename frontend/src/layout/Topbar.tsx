@@ -22,6 +22,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <Header
+      className="app-shell-header"
       style={{
         background: '#fff',
         padding: '0 1.25rem',

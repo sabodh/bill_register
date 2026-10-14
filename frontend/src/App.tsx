@@ -1,5 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
+import { LabBillReportsPage } from './modules/reports/LabBillReportsPage';
+import { ReportsIndexRedirect, ReportsLabBillsLayout } from './modules/reports/ReportsLabBillsLayout';
+
 import { LoginPage } from './auth/LoginPage';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppShell } from './layout/AppShell';
@@ -63,6 +66,12 @@ export default function App() {
             <Route path="lab/test-departments" element={<LabTestDepartmentWorkspacePage />} />
             <Route path="lab/test-departments/new" element={<LabTestDepartmentWorkspacePage />} />
             <Route path="lab/test-departments/:id" element={<LabTestDepartmentWorkspacePage />} />
+            <Route path="reports" element={<ReportsIndexRedirect />} />
+            <Route path="reports/lab-bills" element={<ReportsLabBillsLayout />}>
+              <Route index element={<LabBillReportsPage mode="all" />} />
+              <Route path="doctor" element={<LabBillReportsPage mode="doctor" />} />
+              <Route path="hospital" element={<LabBillReportsPage mode="hospital" />} />
+            </Route>
             <Route path="coming-soon/:module" element={<ComingSoonPage />} />
           </Route>
         </Route>

@@ -117,9 +117,33 @@ export const menuConfig: MenuItemConfig[] = [
   {
     key: 'reports',
     label: 'Reports',
-    path: '/coming-soon/reports',
     permission: 'reports.view_report',
-    comingSoon: true,
+    children: [
+      {
+        key: 'reports-lab-bills',
+        label: 'Lab bill reports',
+        children: [
+          {
+            key: 'reports-lab-bills-all',
+            label: 'All bills',
+            path: '/reports/lab-bills',
+            permission: 'reports.view_report',
+          },
+          {
+            key: 'reports-lab-bills-doctor',
+            label: 'Doctor wise',
+            path: '/reports/lab-bills/doctor',
+            permission: 'reports.view_report',
+          },
+          {
+            key: 'reports-lab-bills-hospital',
+            label: 'Hospital wise',
+            path: '/reports/lab-bills/hospital',
+            permission: 'reports.view_report',
+          },
+        ],
+      },
+    ],
   },
   {
     key: 'users',

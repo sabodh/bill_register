@@ -90,6 +90,14 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     if (location.pathname === '/billing' || location.pathname.startsWith('/lab')) {
       setOpenKeys((keys) => (keys.includes('lab') ? keys : [...keys, 'lab']));
     }
+    if (location.pathname.startsWith('/reports')) {
+      setOpenKeys((keys) => {
+        const next = new Set(keys);
+        next.add('reports');
+        next.add('reports-lab-bills');
+        return [...next];
+      });
+    }
   }, [location.pathname]);
 
   const onMenuClick: MenuProps['onClick'] = ({ key }) => {
@@ -177,7 +185,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   }
 
   return (
-    <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={260}>
+      <Sider
+        className="app-shell-sider" collapsible collapsed={collapsed} onCollapse={setCollapsed} width={260}>
       {siderContent}
     </Sider>
   );
