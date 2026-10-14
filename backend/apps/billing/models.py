@@ -118,6 +118,12 @@ class Bill(BranchScopedModel):
         help_text="Total discount deducted (capped at subtotal)",
     )
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    advance_paid = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0"),
+        help_text="Amount paid in advance toward this bill.",
+    )
     payment_method = models.CharField(
         max_length=16,
         choices=PaymentMethod.choices,

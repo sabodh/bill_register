@@ -3,6 +3,7 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.billing.models import Bill, BillLine, BillingItem, BillStatus, DiscountType, ItemType, PaymentMethod
+from apps.billing.services.balance import balance_due_for_bill as _balance_due_for_bill
 from apps.billing.services.lab_catalog import sync_lab_package_billing_item, sync_lab_test_billing_item
 from apps.billing.services.totals import compute_bill_totals
 from apps.core.models import Branch, Doctor
@@ -67,6 +68,7 @@ class BillLineWriteSerializer(serializers.Serializer):
 class BillSerializer(serializers.ModelSerializer):
     lines = BillLineSerializer(many=True, read_only=True)
     patient_detail = PatientSerializer(source="patient", read_only=True)
+    balance_due = serializers.SerializerMethodField()
 
     class Meta:
         model = Bill
@@ -88,6 +90,8 @@ class BillSerializer(serializers.ModelSerializer):
             "discount_amount",
             "discount_applied",
             "total_amount",
+            "advance_paid",
+            "balance_due",
             "payment_method",
             "payment_transaction_id",
             "notes",
@@ -95,7 +99,10 @@ class BillSerializer(serializers.ModelSerializer):
             "lines",
             "created_at",
         ]
-        read_only_fields = ["bill_number", "total_amount", "created_at"]
+        read_only_fields = ["bill_number", "total_amount", "balance_due", "created_at"]
+
+    def get_balance_due(self, obj: Bill) -> Decimal:
+        return _balance_due_for_bill(obj)
 
 
 class BillCreateSerializer(serializers.ModelSerializer):
@@ -123,8 +130,13 @@ class BillCreateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    doctor_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    hospital_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
     sample_collected_at = serializers.DateTimeField(required=False)
     sample_tested_at = serializers.DateTimeField(required=False, allow_null=True)
+    advance_paid = serializers.DecimalField(
+        max_digits=14, decimal_places=2, required=False, default=Decimal("0"), min_value=Decimal("0")
+    )
 
     class Meta:
         model = Bill
@@ -141,9 +153,20 @@ class BillCreateSerializer(serializers.ModelSerializer):
             "discount_type",
             "discount_percent",
             "discount_amount",
+            "advance_paid",
             "payment_method",
             "payment_transaction_id",
         ]
+
+    @staticmethod
+    def _validate_advance(advance: Decimal, total: Decimal) -> Decimal:
+        if advance < 0:
+            raise serializers.ValidationError({"advance_paid": "Advance cannot be negative."})
+        if advance > total:
+            raise serializers.ValidationError(
+                {"advance_paid": "Advance cannot exceed bill total."}
+            )
+        return advance
 
     def validate(self, attrs):
         discount_type = attrs.get("discount_type", DiscountType.NONE)
@@ -251,6 +274,7 @@ class BillCreateSerializer(serializers.ModelSerializer):
         discount_amount = validated_data.pop("discount_amount", Decimal("0"))
         payment_method = validated_data.pop("payment_method", PaymentMethod.CASH)
         payment_transaction_id = validated_data.pop("payment_transaction_id", "") or ""
+        advance_paid = validated_data.pop("advance_paid", Decimal("0")) or Decimal("0")
         patient = validated_data.pop("patient")
         notes = validated_data.pop("notes", "") or ""
         sample_collected_at = validated_data.pop("sample_collected_at", None)
@@ -271,9 +295,6 @@ class BillCreateSerializer(serializers.ModelSerializer):
         hospital_id = hospital.pk if hospital else None
         if hospital and not hospital_name:
             hospital_name = hospital.name
-        elif hospital_id is None and not hospital_name:
-            hospital_id = branch_id
-            hospital_name = Branch.objects.get(pk=branch_id).name
 
         if sample_collected_at is None:
             from django.utils import timezone
@@ -303,6 +324,7 @@ class BillCreateSerializer(serializers.ModelSerializer):
         subtotal, _from_pct, discount_applied, total = compute_bill_totals(
             subtotal, discount_type, discount_percent, discount_amount
         )
+        advance_paid = self._validate_advance(advance_paid, total)
 
         bill = Bill.objects.create(
             bill_number=generate_bill_number(),
@@ -326,6 +348,7 @@ class BillCreateSerializer(serializers.ModelSerializer):
             discount_amount=discount_amount,
             discount_applied=discount_applied,
             total_amount=total,
+            advance_paid=advance_paid,
         )
         for index, line in enumerate(lines_data):
             item = line.get("billing_item")
@@ -361,6 +384,7 @@ class BillUpdateSerializer(BillCreateSerializer):
         discount_amount = validated_data.pop("discount_amount", Decimal("0"))
         payment_method = validated_data.pop("payment_method", PaymentMethod.CASH)
         payment_transaction_id = validated_data.pop("payment_transaction_id", "") or ""
+        advance_paid = validated_data.pop("advance_paid", Decimal("0")) or Decimal("0")
         patient = validated_data.pop("patient")
         notes = validated_data.pop("notes", "") or ""
         sample_collected_at = validated_data.pop("sample_collected_at", None)
@@ -383,9 +407,6 @@ class BillUpdateSerializer(BillCreateSerializer):
         hospital_id = hospital.pk if hospital else None
         if hospital and not hospital_name:
             hospital_name = hospital.name
-        elif hospital_id is None and not hospital_name:
-            hospital_id = branch_id
-            hospital_name = Branch.objects.get(pk=branch_id).name
 
         if sample_collected_at is None:
             sample_collected_at = instance.sample_collected_at
@@ -411,6 +432,7 @@ class BillUpdateSerializer(BillCreateSerializer):
         subtotal, _from_pct, discount_applied, total = compute_bill_totals(
             subtotal, discount_type, discount_percent, discount_amount
         )
+        advance_paid = self._validate_advance(advance_paid, total)
 
         instance.patient = patient
         instance.doctor = doctor
@@ -428,6 +450,7 @@ class BillUpdateSerializer(BillCreateSerializer):
         instance.discount_amount = discount_amount
         instance.discount_applied = discount_applied
         instance.total_amount = total
+        instance.advance_paid = advance_paid
         instance.status = BillStatus.FINAL
         instance.updated_by = user
         instance.save()
@@ -465,6 +488,8 @@ class BillLabSessionSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    doctor_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    hospital_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
     sample_tested_at = serializers.DateTimeField(required=False, allow_null=True)
 
     class Meta:

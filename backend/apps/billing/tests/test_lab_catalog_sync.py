@@ -109,6 +109,34 @@ def test_create_bill_accepts_lab_test_line(auth_client, branch, admin_user):
     assert str(line.quantity) == "2.00"
     assert str(update_res.data["total_amount"]) == "2400.00"
 
+    advance_res = auth_client.put(
+        f"/api/billing/bills/{bill_id}/",
+        {
+            "patient": patient.id,
+            "advance_paid": "500.00",
+            "lines": [
+                {
+                    "lab_test": test.id,
+                    "description": test.name,
+                    "quantity": "2",
+                    "unit_price": "1200.00",
+                },
+            ],
+        },
+        format="json",
+    )
+    assert advance_res.status_code == 200, advance_res.data
+    assert str(advance_res.data["advance_paid"]) == "500.00"
+    assert str(advance_res.data["balance_due"]) == "1900.00"
+
+    complete_res = auth_client.post(f"/api/lab/result-bills/{bill_id}/complete-payment/")
+    assert complete_res.status_code == 200, complete_res.data
+    assert str(complete_res.data["advance_paid"]) == "2400.00"
+    assert str(complete_res.data["balance_due"]) == "0.00"
+
+    already_paid = auth_client.post(f"/api/billing/bills/{bill_id}/complete-payment/")
+    assert already_paid.status_code == 400
+
     cancel_res = auth_client.post(f"/api/billing/bills/{bill_id}/cancel/")
     assert cancel_res.status_code == 200, cancel_res.data
     from apps.billing.models import Bill, BillStatus

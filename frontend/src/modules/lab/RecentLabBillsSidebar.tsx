@@ -6,6 +6,7 @@ import { apiClient } from '../../api/client';
 import type { LabResultBillSummary, Paginated } from '../../api/types/models';
 import { ErrorBlock, LoadingBlock } from '../../components/QueryState';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { billBalanceDue, billPaymentStatus } from '../billing/billPayment';
 import { RecentBillCardActions } from '../billing/RecentBillCardActions';
 import { formatMoney } from '../patients/patientRegistrationSchema';
 
@@ -50,6 +51,10 @@ function LabResultBillCard({
   onBillCancelled?: (billId: number) => void;
   showResultStatus: boolean;
 }) {
+  const balanceDue = billBalanceDue(bill);
+  const paymentStatus = billPaymentStatus(balanceDue);
+  const balancePending = balanceDue > 0;
+
   return (
     <Card
       size="small"
@@ -61,30 +66,35 @@ function LabResultBillCard({
         <Typography.Text strong className="doctor-list-card-name lab-bill-card-number">
           {bill.bill_number}
         </Typography.Text>
-        <div className="lab-bill-card-header-end">
-          {showResultStatus ? (
-            <div className="lab-results-bill-status-row">
-              <Tag className="lab-results-status-tag" color={bill.billing_completed ? 'success' : 'default'}>
-                Billing completed
+        {paymentStatus || showResultStatus ? (
+          <div className="lab-results-bill-status-row lab-bill-card-header-tags">
+            {paymentStatus ? (
+              <Tag className="lab-results-status-tag" color={paymentStatus.color}>
+                {paymentStatus.label}
               </Tag>
+            ) : null}
+            {showResultStatus ? (
               <Tag
                 className="lab-results-status-tag"
                 color={bill.results_completed ? 'success' : 'warning'}
               >
                 {bill.results_completed ? 'Results completed' : 'Results pending'}
               </Tag>
-            </div>
-          ) : null}
-          <RecentBillCardActions
-            billId={bill.id}
-            billNumber={bill.bill_number}
-            onEdit={onEditBill}
-            onCancelled={onBillCancelled}
-          />
-        </div>
+            ) : null}
+          </div>
+        ) : null}
+        <RecentBillCardActions
+          billId={bill.id}
+          billNumber={bill.bill_number}
+          balanceDue={balanceDue}
+          billTotal={Number(bill.total_amount)}
+          onEdit={onEditBill}
+          onCancelled={onBillCancelled}
+        />
       </div>
-      <Typography.Text type="secondary" className="doctor-list-card-meta">
-        {bill.patient_name} · {bill.patient_uhid}
+      <Typography.Text className="doctor-list-card-meta lab-bill-card-patient-line">
+        <span className="lab-bill-card-patient-name">{bill.patient_name}</span>
+        <span className="lab-bill-card-patient-uhid"> · {bill.patient_uhid}</span>
       </Typography.Text>
       <Typography.Text type="secondary" className="doctor-list-card-meta">
         {formatSampleDate(bill.sample_collected_at)} · {bill.work_item_count} test
@@ -99,6 +109,24 @@ function LabResultBillCard({
           {formatMoney(Number(bill.total_amount))}
         </Typography.Text>
       </div>
+      {balancePending ? (
+        <>
+          {Number(bill.advance_paid ?? 0) > 0 ? (
+            <div className="lab-test-list-card-dept-row">
+              <Typography.Text type="secondary" className="doctor-list-card-meta">Advance</Typography.Text>
+              <Typography.Text type="secondary" className="doctor-list-card-meta lab-test-list-card-amount">
+                {formatMoney(Number(bill.advance_paid ?? 0))}
+              </Typography.Text>
+            </div>
+          ) : null}
+          <div className="lab-test-list-card-dept-row lab-bill-card-balance--pending">
+            <Typography.Text type="secondary" className="doctor-list-card-meta">Balance due</Typography.Text>
+            <Typography.Text className="doctor-list-card-meta lab-test-list-card-amount lab-bill-card-balance-amount">
+              {formatMoney(balanceDue)}
+            </Typography.Text>
+          </div>
+        </>
+      ) : null}
     </Card>
   );
 }

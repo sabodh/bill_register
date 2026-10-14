@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.billing.models import Bill
+from apps.billing.services.balance import balance_due_for_bill
 from apps.billing.serializers import BillLabSessionSerializer
 from apps.core.models import Branch, Doctor
 from apps.lab.services.result_completion import bill_result_completion_summary
@@ -25,6 +26,7 @@ class LabResultBillListSerializer(serializers.ModelSerializer):
     results_completed = serializers.SerializerMethodField()
     result_slots_filled = serializers.SerializerMethodField()
     result_slots_total = serializers.SerializerMethodField()
+    balance_due = serializers.SerializerMethodField()
 
     class Meta:
         model = Bill
@@ -38,6 +40,8 @@ class LabResultBillListSerializer(serializers.ModelSerializer):
             "doctor_name",
             "hospital_name",
             "total_amount",
+            "advance_paid",
+            "balance_due",
             "work_item_count",
             "billing_completed",
             "results_completed",
@@ -45,6 +49,9 @@ class LabResultBillListSerializer(serializers.ModelSerializer):
             "result_slots_total",
             "created_at",
         ]
+
+    def get_balance_due(self, obj: Bill):
+        return balance_due_for_bill(obj)
 
     def get_work_item_count(self, obj: Bill) -> int:
         return len(build_lab_result_work_items(obj))
@@ -69,6 +76,15 @@ class LabResultBillListSerializer(serializers.ModelSerializer):
         return self._completion(obj)["result_slots_total"]
 
 
+class NullablePKIntegerField(serializers.IntegerField):
+    """Accept null, blank, or omitted PK (doctor / hospital optional)."""
+
+    def to_internal_value(self, data):
+        if data is None or data == "":
+            return None
+        return super().to_internal_value(data)
+
+
 class LabResultValueSerializer(serializers.Serializer):
     bill_line_id = serializers.IntegerField()
     lab_test_id = serializers.IntegerField()
@@ -77,8 +93,8 @@ class LabResultValueSerializer(serializers.Serializer):
 
 
 class LabResultSaveSerializer(serializers.Serializer):
-    doctor = serializers.IntegerField(required=False, allow_null=True)
-    hospital = serializers.IntegerField(required=False, allow_null=True)
+    doctor = NullablePKIntegerField(required=False, allow_null=True)
+    hospital = NullablePKIntegerField(required=False, allow_null=True)
     doctor_name = serializers.CharField(required=False, allow_blank=True)
     hospital_name = serializers.CharField(required=False, allow_blank=True)
     sample_collected_at = serializers.DateTimeField(required=False, allow_null=True)
@@ -86,14 +102,12 @@ class LabResultSaveSerializer(serializers.Serializer):
     results = LabResultValueSerializer(many=True, required=False, allow_null=True, default=list)
 
     def validate(self, attrs):
-        doctor_id = attrs.pop("doctor", None)
-        hospital_id = attrs.pop("hospital", None)
-        attrs["doctor"] = (
-            Doctor.objects.filter(pk=doctor_id, is_active=True).first() if doctor_id else None
-        )
-        attrs["hospital"] = (
-            Branch.objects.filter(pk=hospital_id, is_active=True).first() if hospital_id else None
-        )
+        doctor_id = attrs.get("doctor")
+        if doctor_id is not None and not Doctor.objects.filter(pk=doctor_id, is_active=True).exists():
+            attrs["doctor"] = None
+        hospital_id = attrs.get("hospital")
+        if hospital_id is not None and not Branch.objects.filter(pk=hospital_id, is_active=True).exists():
+            attrs["hospital"] = None
         if attrs.get("results") is None:
             attrs["results"] = []
         return attrs

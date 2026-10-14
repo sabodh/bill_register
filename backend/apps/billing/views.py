@@ -9,11 +9,13 @@ from apps.billing.serializers import (
     BillUpdateSerializer,
     BillingItemSerializer,
 )
+from apps.billing.services.complete_payment import complete_bill_payment
 from apps.core import permissions as perms
 from apps.core.mixins import BranchFilterMixin
 from apps.core.permissions_classes import HasPerm
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 
@@ -49,7 +51,14 @@ class BillViewSet(
     permission_classes = [HasPerm(perms.BILLING_VIEW_BILL)]
 
     def get_permissions(self):
-        if self.action in ("create", "update", "partial_update", "cancel", "lab_session"):
+        if self.action in (
+            "create",
+            "update",
+            "partial_update",
+            "cancel",
+            "complete_payment",
+            "lab_session",
+        ):
             return [HasPerm(perms.BILLING_ADD_BILL)()]
         return super().get_permissions()
 
@@ -97,6 +106,19 @@ class BillViewSet(
         bill.status = BillStatus.CANCELLED
         bill.updated_by = request.user
         bill.save(update_fields=["status", "updated_by"])
+        output = BillSerializer(bill, context=self.get_serializer_context())
+        return Response(output.data)
+
+    @action(detail=True, methods=["post"], url_path="complete-payment")
+    def complete_payment(self, request, pk=None):
+        bill = self.get_object()
+        try:
+            bill = complete_bill_payment(bill, request.user)
+        except ValidationError as exc:
+            detail = exc.detail
+            if not isinstance(detail, (dict, list)):
+                detail = {"detail": detail}
+            return Response(detail, status=status.HTTP_400_BAD_REQUEST)
         output = BillSerializer(bill, context=self.get_serializer_context())
         return Response(output.data)
 

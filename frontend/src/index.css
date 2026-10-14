@@ -46,8 +46,17 @@ body {
 
 .billing-form-section-title {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
   font-size: 13px;
+}
+
+.billing-form-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .billing-patient-summary {
@@ -289,14 +298,16 @@ body {
 
 .lab-bill-card-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
 }
 
 .lab-bill-card-number {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 42%;
 }
 
 .lab-bill-card-header-end {
@@ -306,6 +317,25 @@ body {
   flex-shrink: 1;
   min-width: 0;
   justify-content: flex-end;
+}
+
+.lab-bill-card-header-tags {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-start;
+  margin: 0;
+}
+
+.lab-bill-card-actions-btn {
+  flex-shrink: 0;
+  min-width: 2rem;
+  min-height: 2rem;
+  color: rgba(0, 0, 0, 0.55) !important;
+}
+
+.lab-bill-card-actions-btn:hover {
+  color: rgba(0, 0, 0, 0.88) !important;
+  background: rgba(0, 0, 0, 0.04) !important;
 }
 
 .lab-results-bill-status-row {
@@ -325,9 +355,37 @@ body {
   padding-inline: 0.35rem;
 }
 
+.lab-bill-card-balance--pending .lab-bill-card-balance-amount {
+  color: #d48806;
+  font-weight: 600;
+}
+
+.lab-bill-card-balance--pending .doctor-list-card-meta:first-child {
+  color: rgba(0, 0, 0, 0.65);
+  font-weight: 500;
+}
+
 .lab-bill-card-header .doctor-list-card-name {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.lab-bill-card-patient-line {
+  display: block;
+  margin-top: 0.15rem;
+  line-height: 1.35;
+}
+
+.lab-bill-card-patient-name {
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 13px;
+}
+
+.lab-bill-card-patient-uhid {
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
 }
 
 .lab-bill-card-edit {
@@ -1129,6 +1187,31 @@ body {
 
 .billing-discount-controls .ant-select {
   min-width: 4.5rem;
+}
+
+.billing-balance-pending-amount {
+  color: #d48806;
+  font-weight: 600;
+}
+
+.billing-balance-line--pending span:first-child {
+  color: rgba(0, 0, 0, 0.65);
+  font-weight: 500;
+}
+
+.billing-payment-status-row {
+  margin-top: 0.15rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed #f0f0f0;
+}
+
+.billing-payment-status-tag {
+  margin: 0;
+}
+
+.billing-complete-payment-btn {
+  width: 100%;
+  margin-top: 0.35rem;
 }
 
 .billing-summary-total {

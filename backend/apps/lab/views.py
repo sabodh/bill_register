@@ -1,6 +1,7 @@
 from django.db.models import Q
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.billing.services.lab_catalog import sync_lab_package_billing_item, sync_lab_test_billing_item
@@ -8,6 +9,8 @@ from apps.core import permissions as perms
 from apps.core.permissions_classes import HasAnyPerm, HasPerm
 from apps.core.mixins import BranchFilterMixin
 from apps.core.views.base import CoreModelViewSet
+from apps.billing.serializers import BillSerializer
+from apps.billing.services.complete_payment import complete_bill_payment
 from apps.lab.result_serializers import (
     LabResultBillDetailSerializer,
     LabResultBillListSerializer,
@@ -136,7 +139,7 @@ class LabResultBillViewSet(BranchFilterMixin, mixins.ListModelMixin, mixins.Retr
     lookup_value_regex = r"[0-9]+"
 
     def get_permissions(self):
-        if self.action == "save_results":
+        if self.action in ("save_results", "complete_payment"):
             return [HasAnyPerm(perms.LAB_ADD_ORDER, perms.BILLING_ADD_BILL)()]
         return super().get_permissions()
 
@@ -190,6 +193,19 @@ class LabResultBillViewSet(BranchFilterMixin, mixins.ListModelMixin, mixins.Retr
                 | Q(patient__uhid__icontains=search)
             )
         return qs
+
+    @action(detail=True, methods=["post"], url_path="complete-payment")
+    def complete_payment(self, request, pk=None):
+        bill = self.get_object()
+        try:
+            bill = complete_bill_payment(bill, request.user)
+        except ValidationError as exc:
+            detail = exc.detail
+            if not isinstance(detail, (dict, list)):
+                detail = {"detail": detail}
+            return Response(detail, status=status.HTTP_400_BAD_REQUEST)
+        output = BillSerializer(bill, context=self.get_serializer_context())
+        return Response(output.data)
 
     @action(detail=True, methods=["post"], url_path="save-results")
     def save_results(self, request, pk=None):

@@ -275,6 +275,8 @@ export interface BillRecord {
   patient: number | null;
   status: string;
   total_amount: string;
+  advance_paid: string;
+  balance_due: string;
   sample_collected_at: string;
   sample_tested_at?: string | null;
   created_at: string;
@@ -308,6 +310,8 @@ export interface LabResultBillSummary {
   doctor_name: string;
   hospital_name: string;
   total_amount: string;
+  advance_paid: string;
+  balance_due: string;
   work_item_count: number;
   billing_completed: boolean;
   results_completed: boolean;

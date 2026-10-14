@@ -167,15 +167,11 @@ export function billVisitContextFromDetail(detail: {
 
 export function billVisitContextToLabSessionPayload(state: BillVisitContextState) {
   const payload: Record<string, unknown> = {
+    doctor: state.doctorId,
+    hospital: state.hospitalId,
     doctor_name: state.doctorSearch.trim(),
     hospital_name: state.hospitalSearch.trim(),
   };
-  if (state.doctorId != null) {
-    payload.doctor = state.doctorId;
-  }
-  if (state.hospitalId != null) {
-    payload.hospital = state.hospitalId;
-  }
   if (state.sampleCollectedAt?.isValid()) {
     payload.sample_collected_at = state.sampleCollectedAt.toISOString();
   }

@@ -4,15 +4,17 @@ import {
   DatePicker,
   Input,
   InputNumber,
+  Modal,
   Popconfirm,
   Select,
   Space,
   Table,
+  Tag,
   Tooltip,
   Typography,
   message,
 } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, FilePdfOutlined, PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -32,6 +34,10 @@ import type {
 import { ErrorBlock, LoadingBlock } from '../../components/QueryState';
 import { useAuth } from '../../auth/AuthContext';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { completeBillPayment } from './completeBillPayment';
+import { billPaymentStatus } from './billPayment';
+import { billPdfSnapshotFromDetail } from './pdf/billPdfSnapshot';
+import { billPdfPageSizeLabel, downloadBillPdfFromDetail } from './pdf/downloadBillPdf';
 
 function formatAgeSex(patient: Patient) {
   const agePart = patient.age_years != null ? `${patient.age_years}y` : '—';
@@ -165,14 +171,12 @@ type BillingPanelProps = {
 export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const defaultHospitalId = user?.branch ?? null;
-
   const [patientSearch, setPatientSearch] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [doctorId, setDoctorId] = useState<number | null>(null);
   const [doctorSearch, setDoctorSearch] = useState('');
-  const [hospitalId, setHospitalId] = useState<number | null>(defaultHospitalId);
-  const [hospitalSearch, setHospitalSearch] = useState(() => user?.branch_detail?.name ?? '');
+  const [hospitalId, setHospitalId] = useState<number | null>(null);
+  const [hospitalSearch, setHospitalSearch] = useState('');
   const [sampleCollectedAt, setSampleCollectedAt] = useState<Dayjs>(() => dayjs());
   const [sampleTestedAt, setSampleTestedAt] = useState<Dayjs | null>(null);
 
@@ -183,11 +187,14 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [paymentTransactionId, setPaymentTransactionId] = useState('');
+  const [advancePaid, setAdvancePaid] = useState<number>(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 300);
   const debouncedPatientSearch = useDebouncedValue(patientSearch, 300);
   const debouncedDoctorSearch = useDebouncedValue(doctorSearch, 300);
   const debouncedHospitalSearch = useDebouncedValue(hospitalSearch, 300);
   const hydratedBillId = useRef<number | null>(null);
+  const advanceUserAdjusted = useRef(false);
 
   const billQuery = useQuery({
     queryKey: ['billing', 'bill', billId],
@@ -375,6 +382,23 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
     [subtotal, discountType, discountPercent, discountAmount],
   );
 
+  const balanceDue = useMemo(
+    () => Math.max(0, Number((totals.total - advancePaid).toFixed(2))),
+    [totals.total, advancePaid],
+  );
+  const paymentStatus = useMemo(() => billPaymentStatus(balanceDue), [balanceDue]);
+  const balancePending = balanceDue > 0;
+
+  useEffect(() => {
+    if (!advanceUserAdjusted.current) {
+      setAdvancePaid(totals.total);
+      return;
+    }
+    if (advancePaid > totals.total) {
+      setAdvancePaid(totals.total);
+    }
+  }, [advancePaid, totals.total]);
+
   const needsTransactionId = paymentMethod === 'UPI' || paymentMethod === 'CARD';
 
   const saveDisabledReason = useMemo(() => {
@@ -398,6 +422,7 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
     discountType !== 'NONE' ||
     paymentMethod !== 'CASH' ||
     paymentTransactionId.trim() !== '' ||
+    (totals.total > 0 && advancePaid !== totals.total) ||
     search.trim() !== '' ||
     patientSearch.trim() !== '';
 
@@ -406,8 +431,8 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
     setPatientSearch('');
     setDoctorId(null);
     setDoctorSearch('');
-    setHospitalId(defaultHospitalId);
-    setHospitalSearch(user?.branch_detail?.name ?? '');
+    setHospitalId(null);
+    setHospitalSearch('');
     setSampleCollectedAt(dayjs());
     setSampleTestedAt(null);
     setLines([]);
@@ -416,6 +441,8 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
     setDiscountAmount(0);
     setPaymentMethod('CASH');
     setPaymentTransactionId('');
+    setAdvancePaid(0);
+    advanceUserAdjusted.current = false;
     setSearch('');
   };
 
@@ -433,6 +460,7 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
   useEffect(() => {
     if (billId == null) {
       hydratedBillId.current = null;
+      advanceUserAdjusted.current = false;
       return;
     }
     const bill = billQuery.data;
@@ -450,7 +478,7 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
     setDoctorId(bill.doctor);
     setDoctorSearch(bill.doctor_name);
     setHospitalId(bill.hospital);
-    setHospitalSearch(bill.hospital_name || (user?.branch_detail?.name ?? ''));
+    setHospitalSearch(bill.hospital_name ?? '');
     setSampleCollectedAt(dayjs(bill.sample_collected_at));
     setSampleTestedAt(bill.sample_tested_at ? dayjs(bill.sample_tested_at) : null);
     setDiscountType(bill.discount_type);
@@ -458,6 +486,8 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
     setDiscountAmount(Number(bill.discount_amount));
     setPaymentMethod(bill.payment_method);
     setPaymentTransactionId(bill.payment_transaction_id ?? '');
+    advanceUserAdjusted.current = true;
+    setAdvancePaid(Number(bill.advance_paid ?? 0));
     setLines(
       bill.lines.map((line, index) => ({
         key: `line-${line.id}-${index}`,
@@ -471,6 +501,36 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
     );
     setSearch('');
   }, [billId, billQuery.data, user?.branch_detail?.name]);
+
+  const completePaymentMutation = useMutation({
+    mutationFn: () => {
+      if (billId == null) {
+        throw new Error('No bill selected');
+      }
+      return completeBillPayment(billId, 'billing');
+    },
+    onSuccess: (bill) => {
+      message.success(`Payment completed — ${bill.bill_number}`);
+      advanceUserAdjusted.current = true;
+      setAdvancePaid(Number(bill.advance_paid));
+      void queryClient.invalidateQueries({ queryKey: ['lab', 'result-bills'] });
+      void queryClient.invalidateQueries({ queryKey: ['billing', 'bill', billId] });
+    },
+    onError: (error) => message.error(billSaveErrorMessage(error)),
+  });
+
+  const confirmCompletePayment = () => {
+    const billNumber = billQuery.data?.bill_number ?? 'this bill';
+    Modal.confirm({
+      title: 'Complete payment?',
+      content: `Record that the patient paid the full amount for ${billNumber}? Advance will be set to ${formatMoney(totals.total)} and the balance will be zero.`,
+      okText: 'Complete payment',
+      cancelText: 'Not yet',
+      onOk: async () => {
+        await completePaymentMutation.mutateAsync();
+      },
+    });
+  };
 
   const onTitleChangeRef = useRef(onTitleChange);
   onTitleChangeRef.current = onTitleChange;
@@ -513,6 +573,7 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
         discount_type: discountType,
         discount_percent: discountType === 'PERCENT' ? discountPercent : 0,
         discount_amount: discountType === 'AMOUNT' ? discountAmount : 0,
+        advance_paid: advancePaid,
         payment_method: paymentMethod,
         payment_transaction_id: needsTransactionId ? paymentTransactionId.trim() : '',
         lines: lines.map((row) => ({
@@ -544,6 +605,25 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
     onError: (error) => message.error(billSaveErrorMessage(error)),
   });
 
+  const handleDownloadPdf = async () => {
+    const bill = billQuery.data;
+    if (!bill) {
+      return;
+    }
+    setPdfLoading(true);
+    try {
+      const snapshot = await downloadBillPdfFromDetail(bill);
+      message.success(`PDF downloaded (${billPdfPageSizeLabel(snapshot)})`);
+    } catch {
+      message.error('Could not generate PDF');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const pdfPageHint =
+    billQuery.data != null ? billPdfPageSizeLabel(billPdfSnapshotFromDetail(billQuery.data)) : null;
+
   if (billId != null && billQuery.isLoading) {
     return <LoadingBlock />;
   }
@@ -554,7 +634,19 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
   return (
     <>
       <div className="billing-form-section">
-        <Typography.Text strong className="billing-form-section-title">Patient</Typography.Text>
+        <div className="billing-form-section-heading">
+          <Typography.Text strong className="billing-form-section-title">Patient</Typography.Text>
+          {billId != null && billQuery.data ? (
+            <Button
+              size="small"
+              icon={<FilePdfOutlined />}
+              loading={pdfLoading}
+              onClick={() => void handleDownloadPdf()}
+            >
+              Download PDF{pdfPageHint ? ` (${pdfPageHint})` : ''}
+            </Button>
+          ) : null}
+        </div>
         <AutoComplete
           style={{ width: '100%', maxWidth: 520 }}
           value={patientSearch}
@@ -872,6 +964,52 @@ export function BillingPanel({ billId, onTitleChange, onSuccess }: BillingPanelP
                     {formatMoney(totals.total)}
                   </Typography.Title>
                 </div>
+                <div className="billing-amount-line">
+                  <span>Advance payment</span>
+                  <InputNumber
+                    size="small"
+                    min={0}
+                    max={totals.total}
+                    step={1}
+                    value={advancePaid}
+                    onChange={(val) => {
+                      advanceUserAdjusted.current = true;
+                      setAdvancePaid(Math.min(totals.total, Number(val) || 0));
+                    }}
+                    formatter={(val) =>
+                      val != null && String(val).length > 0 ? `₹ ${val}` : ''
+                    }
+                    parser={(val) => Number((val ?? '').replace(/[₹\s,]/g, '')) || 0}
+                    style={{ width: 120 }}
+                  />
+                </div>
+                {balancePending ? (
+                  <>
+                    <div className="billing-amount-line billing-balance-line--pending">
+                      <span>Balance due</span>
+                      <strong className="billing-balance-pending-amount">{formatMoney(balanceDue)}</strong>
+                    </div>
+                    {paymentStatus ? (
+                      <div className="billing-amount-line billing-payment-status-row">
+                        <span>Billing status</span>
+                        <Tag color={paymentStatus.color} className="billing-payment-status-tag">
+                          {paymentStatus.label}
+                        </Tag>
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+                {billId != null && balancePending ? (
+                  <Button
+                    type="default"
+                    size="small"
+                    className="billing-complete-payment-btn"
+                    loading={completePaymentMutation.isPending}
+                    onClick={confirmCompletePayment}
+                  >
+                    Complete payment
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>
