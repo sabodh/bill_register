@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models.base import AuditFieldsModel, BranchScopedModel
 
@@ -34,6 +35,19 @@ class BillStatus(models.TextChoices):
     FINAL = "FINAL", "Final"
 
 
+class DiscountType(models.TextChoices):
+    NONE = "NONE", "None"
+    PERCENT = "PERCENT", "Percent"
+    AMOUNT = "AMOUNT", "Amount"
+
+
+class PaymentMethod(models.TextChoices):
+    CASH = "CASH", "Cash"
+    UPI = "UPI", "UPI"
+    CARD = "CARD", "Card"
+    CREDIT = "CREDIT", "Credit"
+
+
 class Bill(BranchScopedModel):
     bill_number = models.CharField(max_length=32, unique=True, db_index=True)
     patient = models.ForeignKey(
@@ -43,8 +57,67 @@ class Bill(BranchScopedModel):
         null=True,
         blank=True,
     )
+    doctor = models.ForeignKey(
+        "core.Doctor",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bills",
+    )
+    doctor_name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Doctor name printed on the bill (may differ from the linked doctor).",
+    )
+    hospital = models.ForeignKey(
+        "core.Branch",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="hospital_bills",
+        help_text="Hospital printed on the bill (defaults to the bill branch).",
+    )
+    hospital_name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Hospital name printed on the bill (may differ from the linked branch).",
+    )
+    sample_collected_at = models.DateTimeField(
+        default=timezone.now,
+        help_text="Sample collection date and time for lab reports.",
+    )
     status = models.CharField(max_length=20, choices=BillStatus.choices, default=BillStatus.DRAFT)
+    subtotal_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    discount_type = models.CharField(
+        max_length=16,
+        choices=DiscountType.choices,
+        default=DiscountType.NONE,
+    )
+    discount_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0"),
+        help_text="Used when discount_type is PERCENT",
+    )
+    discount_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0"),
+        help_text="Used when discount_type is AMOUNT",
+    )
+    discount_applied = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0"),
+        help_text="Total discount deducted (capped at subtotal)",
+    )
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    payment_method = models.CharField(
+        max_length=16,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.CASH,
+    )
+    payment_transaction_id = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
 
     class Meta:

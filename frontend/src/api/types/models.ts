@@ -68,13 +68,104 @@ export interface DepartmentRecord {
   is_active: boolean;
 }
 
+export type LabTestType = 'NORMAL' | 'SUBTEST' | 'SPECIAL' | 'MULTIPLE_REFERENCE';
+
+export interface LabTestReferenceRange {
+  id?: number;
+  role?: 'SINGLE' | 'SUBTEST' | 'VARIANT';
+  result_group?: string;
+  reference_text: string;
+  low_value: string | null;
+  high_value: string | null;
+  unit: string;
+  sort_order?: number;
+}
+
+export type LabResultEntryLayout =
+  | {
+      layout: 'single';
+      test_type: LabTestType;
+      title: string;
+      method_name: string;
+      result_key: string;
+      unit: string;
+      reference: string | null;
+      reference_low?: string | null;
+      reference_high?: string | null;
+    }
+  | {
+      layout: 'panel';
+      test_type: LabTestType;
+      title: string;
+      method_name: string;
+      panel_title: string;
+      columns: { key: string; label: string; editable?: boolean }[];
+      rows: {
+        result_key: string;
+        subtest_name: string;
+        reference: string | null;
+        reference_low?: string | null;
+        reference_high?: string | null;
+        unit: string;
+      }[];
+    }
+  | {
+      layout: 'multi_reference';
+      test_type: LabTestType;
+      title: string;
+      method_name: string;
+      result_key: string;
+      unit: string;
+      variants: {
+        label: string;
+        reference: string | null;
+        reference_low?: string | null;
+        reference_high?: string | null;
+        unit: string;
+        display_text?: string;
+      }[];
+    }
+  | {
+      layout: 'billing_only';
+      test_type: LabTestType;
+      title: string;
+      method_name: string;
+    };
+
+export interface LabTestInterpretation {
+  id?: number;
+  note: string;
+  sort_order?: number;
+}
+
+export interface LabPackageItemRecord {
+  id: number;
+  test: number;
+  test_detail?: Pick<LabTestRecord, 'id' | 'name' | 'code' | 'default_rate'>;
+  sort_order: number;
+}
+
+export interface LabPackageRecord {
+  id: number;
+  name: string;
+  package_amount: string;
+  items: LabPackageItemRecord[];
+  branch: number;
+  is_active: boolean;
+}
+
 export interface LabTestRecord {
   id: number;
   department: number | null;
   department_detail?: DepartmentRecord | null;
   name: string;
   code: string;
+  method_name: string;
+  test_type: LabTestType;
   default_rate: string;
+  reference_ranges: LabTestReferenceRange[];
+  interpretations: LabTestInterpretation[];
+  result_entry_layout?: LabResultEntryLayout;
   branch: number;
   is_active: boolean;
 }

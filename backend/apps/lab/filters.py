@@ -1,6 +1,6 @@
 import django_filters
 
-from apps.lab.models import LabTest, TestDepartment
+from apps.lab.models import LabPackage, LabTest, TestDepartment
 
 
 class TestDepartmentFilter(django_filters.FilterSet):
@@ -8,6 +8,14 @@ class TestDepartmentFilter(django_filters.FilterSet):
 
     class Meta:
         model = TestDepartment
+        fields = ["branch", "is_active"]
+
+
+class LabPackageFilter(django_filters.FilterSet):
+    is_active = django_filters.BooleanFilter()
+
+    class Meta:
+        model = LabPackage
         fields = ["branch", "is_active"]
 
 

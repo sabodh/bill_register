@@ -4,8 +4,11 @@ import { LoginPage } from './auth/LoginPage';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppShell } from './layout/AppShell';
 import { BillingPage } from './modules/billing/BillingPage';
+import { LabAllTestsPage } from './modules/lab/LabAllTestsPage';
 import { LabResultsPage } from './modules/lab/LabResultsPage';
 import { LabTestDepartmentWorkspacePage } from './modules/lab/LabTestDepartmentWorkspacePage';
+import { LabWorkspaceLayout } from './modules/lab/LabWorkspaceLayout';
+import { LabPackagesWorkspacePage } from './modules/lab/LabPackagesWorkspacePage';
 import { LabTestsWorkspacePage } from './modules/lab/LabTestsWorkspacePage';
 import { DoctorDepartmentWorkspacePage } from './modules/departments/DoctorDepartmentWorkspacePage';
 import { StaffDepartmentWorkspacePage } from './modules/departments/StaffDepartmentWorkspacePage';
@@ -49,9 +52,14 @@ export default function App() {
             <Route path="staff/:id" element={<StaffFormPage />} />
             <Route path="billing" element={<BillingPage />} />
             <Route path="lab/results" element={<LabResultsPage />} />
-            <Route path="lab/tests" element={<LabTestsWorkspacePage />} />
-            <Route path="lab/tests/new" element={<LabTestsWorkspacePage />} />
-            <Route path="lab/tests/:id" element={<LabTestsWorkspacePage />} />
+            <Route path="lab/all-tests" element={<LabAllTestsPage />} />
+            <Route element={<LabWorkspaceLayout />}>
+              <Route path="lab/tests" element={<LabTestsWorkspacePage />} />
+              <Route path="lab/tests/new" element={<LabTestsWorkspacePage />} />
+              <Route path="lab/tests/:id" element={<LabTestsWorkspacePage />} />
+              <Route path="lab/packages" element={<LabPackagesWorkspacePage />} />
+              <Route path="lab/packages/:id" element={<LabPackagesWorkspacePage />} />
+            </Route>
             <Route path="lab/test-departments" element={<LabTestDepartmentWorkspacePage />} />
             <Route path="lab/test-departments/new" element={<LabTestDepartmentWorkspacePage />} />
             <Route path="lab/test-departments/:id" element={<LabTestDepartmentWorkspacePage />} />

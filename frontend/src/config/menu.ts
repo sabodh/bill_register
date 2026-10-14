@@ -81,6 +81,18 @@ export const menuConfig: MenuItemConfig[] = [
         permission: 'lab.view_test',
       },
       {
+        key: 'lab-packages',
+        label: 'Package',
+        path: '/lab/packages',
+        permission: 'lab.view_test',
+      },
+      {
+        key: 'lab-all-tests',
+        label: 'All tests',
+        path: '/lab/all-tests',
+        permission: 'lab.view_test',
+      },
+      {
         key: 'lab-test-departments',
         label: 'Test department',
         path: '/lab/test-departments',
