@@ -363,6 +363,7 @@ function LabResultBillDetailPanel({
                   title={item.test_name}
                   methodName={item.method_name}
                   departmentName={item.department_name}
+                  patientGender={bill.patient_detail?.gender ?? null}
                   draftRanges={[]}
                   values={valuesForWorkItem(item.bill_line_id, item.lab_test_id)}
                   onValueChange={(resultKey, value) =>

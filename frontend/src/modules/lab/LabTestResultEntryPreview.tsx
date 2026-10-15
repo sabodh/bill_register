@@ -1,6 +1,11 @@
 import { Input, Typography } from 'antd';
 
 import type { LabResultEntryLayout, LabTestCategory } from '../../api/types/models';
+import {
+  isResultOutsideReference,
+  pickReferenceBandForPatient,
+  type ReferenceBand,
+} from './labResultReferenceCheck';
 import { formatVariantDisplayText } from './labVariantDisplay';
 import { resolveResultEntryLayout, type DraftRange } from './labResultEntryLayout';
 
@@ -12,6 +17,9 @@ type ResultGridRow = {
   refLines: string[];
   methodName?: string;
   departmentName?: string;
+  isSubtest?: boolean;
+  referenceBand?: ReferenceBand | null;
+  referenceBands?: ReferenceBand[];
 };
 
 const RESULT_FIELD_SELECTOR =
@@ -40,8 +48,11 @@ function LabResultEntryGrid({
   values: Record<string, string>;
   onValueChange?: (resultKey: string, value: string) => void;
 }) {
-  const resultInput = (resultKey: string, placeholder?: string) => {
-    const value = values[resultKey] ?? '';
+  const resultInput = (row: ResultGridRow, placeholder?: string) => {
+    const value = values[row.resultKey] ?? '';
+    const abnormal =
+      editable &&
+      isResultOutsideReference(value, row.referenceBand ?? null, row.referenceBands);
     if (!editable) {
       return (
         <Input
@@ -54,26 +65,34 @@ function LabResultEntryGrid({
       );
     }
     return (
-      <Input.TextArea
-        placeholder={placeholder ?? 'Result'}
-        className="lab-result-preview-input lab-result-preview-textarea"
-        value={value}
-        onChange={(e) => onValueChange?.(resultKey, e.target.value)}
-        size="small"
-        autoSize={{ minRows: 1, maxRows: 6 }}
-        onKeyDown={(e) => {
-          if (e.key !== 'Enter' || e.shiftKey) {
-            return;
-          }
-          e.preventDefault();
-          focusNextResultField(e.currentTarget);
-        }}
-      />
+      <div className="lab-result-preview-result-field">
+        <Input.TextArea
+          placeholder={placeholder ?? 'Result'}
+          className="lab-result-preview-input lab-result-preview-textarea"
+          value={value}
+          status={abnormal ? 'warning' : undefined}
+          onChange={(e) => onValueChange?.(row.resultKey, e.target.value)}
+          size="small"
+          autoSize={{ minRows: 1, maxRows: 6 }}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' || e.shiftKey) {
+              return;
+            }
+            e.preventDefault();
+            focusNextResultField(e.currentTarget);
+          }}
+        />
+        {abnormal ? (
+          <Typography.Text type="warning" className="lab-result-abnormal-hint">
+            Outside biological reference range — not normal
+          </Typography.Text>
+        ) : null}
+      </div>
     );
   };
 
   return (
-    <div className="lab-result-preview-multi-table">
+    <>
       <div className="lab-result-preview-multi-grid lab-result-preview-multi-grid--header">
         <span>Test name</span>
         <span>Result</span>
@@ -81,7 +100,11 @@ function LabResultEntryGrid({
       </div>
       {rows.map((row) => (
         <div key={row.key} className="lab-result-preview-multi-grid lab-result-preview-multi-grid--row">
-          <div className="lab-result-preview-col-name">
+          <div
+            className={`lab-result-preview-col-name${
+              row.isSubtest ? ' lab-result-preview-col-name--subtest' : ''
+            }`}
+          >
             <span className="lab-result-preview-test-name">{row.name}</span>
             {row.methodName ? (
               <Typography.Text type="secondary" className="lab-result-preview-method">
@@ -95,7 +118,7 @@ function LabResultEntryGrid({
             ) : null}
           </div>
           <div className="lab-result-preview-col-result">
-            {resultInput(row.resultKey)}
+            {resultInput(row)}
             {row.unit ? <span className="lab-result-preview-unit">{row.unit}</span> : null}
           </div>
           <div className="lab-result-preview-col-ref">
@@ -111,7 +134,7 @@ function LabResultEntryGrid({
           </div>
         </div>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -120,6 +143,7 @@ function rowsFromLayout(
   methodName: string,
   departmentName: string,
   showDepartmentOnRows: boolean,
+  patientGender?: string | null,
 ): ResultGridRow[] {
   const dept = departmentName.trim() || undefined;
   const rowDept = showDepartmentOnRows ? dept : undefined;
@@ -134,6 +158,10 @@ function rowsFromLayout(
         methodName: spec.method_name || methodName || undefined,
         departmentName: rowDept,
         refLines: spec.reference ? [spec.reference] : [],
+        referenceBand: {
+          referenceLow: spec.reference_low,
+          referenceHigh: spec.reference_high,
+        },
       },
     ];
   }
@@ -156,6 +184,11 @@ function rowsFromLayout(
         methodName: spec.method_name || methodName || undefined,
         departmentName: rowDept,
         refLines,
+        referenceBand: pickReferenceBandForPatient(spec.variants, patientGender),
+        referenceBands: spec.variants.map((v) => ({
+          referenceLow: v.reference_low,
+          referenceHigh: v.reference_high,
+        })),
       },
     ];
   }
@@ -167,6 +200,11 @@ function rowsFromLayout(
       resultKey: row.result_key,
       unit: row.unit || '',
       refLines: row.reference ? [row.reference] : [],
+      isSubtest: true,
+      referenceBand: {
+        referenceLow: row.reference_low,
+        referenceHigh: row.reference_high,
+      },
     }));
   }
 
@@ -180,6 +218,7 @@ export function LabTestResultEntryPreview({
   methodName,
   draftRanges,
   departmentName = '',
+  patientGender = null,
   editable = false,
   values = {},
   onValueChange,
@@ -190,6 +229,7 @@ export function LabTestResultEntryPreview({
   methodName: string;
   draftRanges: DraftRange[];
   departmentName?: string;
+  patientGender?: string | null;
   editable?: boolean;
   values?: Record<string, string>;
   onValueChange?: (resultKey: string, value: string) => void;
@@ -207,7 +247,7 @@ export function LabTestResultEntryPreview({
   }
 
   const isPanel = spec.layout === 'panel';
-  const rows = rowsFromLayout(spec, methodName, departmentName, !isPanel);
+  const rows = rowsFromLayout(spec, methodName, departmentName, !isPanel, patientGender);
   const panelTitle = isPanel ? spec.panel_title || spec.title : null;
   const panelDept = departmentName.trim();
 
@@ -230,12 +270,18 @@ export function LabTestResultEntryPreview({
           ) : null}
         </div>
       ) : null}
-      <LabResultEntryGrid
-        rows={rows}
-        editable={editable}
-        values={values}
-        onValueChange={onValueChange}
-      />
+      <div
+        className={`lab-result-preview-multi-table${
+          isPanel ? ' lab-result-preview-multi-table--panel' : ''
+        }`}
+      >
+        <LabResultEntryGrid
+          rows={rows}
+          editable={editable}
+          values={values}
+          onValueChange={onValueChange}
+        />
+      </div>
     </div>
   );
 }

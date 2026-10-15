@@ -134,7 +134,9 @@ export function LabTestFullFormDisplay({
           {spec.layout === 'panel' &&
             spec.rows.map((row) => (
               <div key={row.result_key} className="lab-result-preview-multi-grid lab-test-full-form-panel-row">
-                <div className="lab-result-preview-col-name">{row.subtest_name}</div>
+                <div className="lab-result-preview-col-name lab-result-preview-col-name--subtest">
+                  {row.subtest_name}
+                </div>
                 <ResultValueField unit={row.unit} />
                 <div className="lab-result-preview-col-ref">
                   <span className="lab-result-preview-ref-line">{row.reference ?? '—'}</span>
