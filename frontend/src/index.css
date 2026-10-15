@@ -8,14 +8,450 @@ body {
   background: #f5f7fa;
 }
 
+/* ——— App shell sidebar (sectioned nav) ——— */
+.app-shell-sider.ant-layout-sider {
+  background: #141414 !important;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow: hidden;
+  transition:
+    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    flex 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.app-shell-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-shell-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  background: #141414;
+  color: #fff;
+}
+
+.app-shell-sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  overflow: hidden;
+  transition:
+    opacity 0.22s ease,
+    max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 12rem;
+  opacity: 1;
+}
+
+.app-shell-sidebar-brand-text--hidden {
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-shell-sidebar-brand--compact {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.25rem 0.4rem;
+}
+
+.app-shell-sidebar-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px !important;
+  height: 32px !important;
+  min-width: 40px;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  border-radius: 8px;
+}
+
+.app-shell-sidebar-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.app-shell-sidebar-logo--compact {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+
+.app-shell-sidebar-toggle {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.65) !important;
+  flex-shrink: 0;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-shell-sidebar-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell-sidebar-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  transition:
+    opacity 0.24s ease,
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-shell-sidebar-panel--expanded {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.app-shell-sidebar-panel--compact {
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+  z-index: 1;
+  align-items: center;
+}
+
+.app-shell-sidebar-body--collapsed .app-shell-sidebar-panel--expanded {
+  opacity: 0;
+  transform: translateX(-12px);
+  pointer-events: none;
+}
+
+.app-shell-sidebar-body--collapsed .app-shell-sidebar-panel--compact {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.app-shell-nav-collapsed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem 0 0.35rem;
+  width: 100%;
+}
+
+.app-shell-nav-glyph-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.app-shell-nav-glyph-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.app-shell-nav-glyph-btn--active {
+  background: rgba(20, 184, 166, 0.22);
+  color: #fff;
+}
+
+.app-shell-nav-glyph-icon {
+  display: flex;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.app-shell-nav-glyph-letters {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.app-shell-sidebar-scroll--compact {
+  padding-bottom: 0.25rem;
+}
+
+.app-shell-sidebar-compact-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+}
+
+.app-shell-sidebar-compact-footer-btn {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.app-shell-nav-drawer .ant-drawer-body {
+  background: #141414;
+  padding: 0 !important;
+}
+
+.app-shell-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.125rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.app-shell-sidebar-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  flex-shrink: 0;
+}
+
+.app-shell-sidebar-title {
+  color: #fff !important;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.app-shell-sidebar-branch {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.app-shell-sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 0.5rem;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.app-shell-sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-shell-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+
+.app-shell-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-shell-sidebar-footer {
+  flex-shrink: 0;
+}
+
+.app-shell-nav-section-title {
+  padding: 1rem 1.25rem 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.app-shell-nav-section-title--static {
+  padding-bottom: 0.35rem;
+}
+
+.app-shell-nav-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: 1rem 1.25rem 0.35rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.app-shell-nav-section-toggle:hover .app-shell-nav-section-title {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.app-shell-nav-section-toggle .app-shell-nav-section-title {
+  padding: 0;
+}
+
+.app-shell-nav-section-caret {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.38);
+  transition: transform 0.22s ease;
+  flex-shrink: 0;
+}
+
+.app-shell-nav-section--closed .app-shell-nav-section-caret,
+.app-shell-nav-group-toggle--closed .app-shell-nav-section-caret {
+  transform: rotate(-90deg);
+}
+
+.app-shell-nav-section-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-shell-nav-section-body--closed {
+  grid-template-rows: 0fr;
+}
+
+.app-shell-nav-section-body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.app-shell-nav-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: 0.35rem 1.25rem 0.2rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.app-shell-nav-group-toggle:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.app-shell-nav-divider {
+  height: 1px;
+  margin: 0.35rem 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.app-shell-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: 0.9rem 1.25rem;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.app-shell-nav-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.app-shell-nav-row--active {
+  background: rgba(20, 184, 166, 0.14);
+}
+
+.app-shell-nav-row--nested {
+  padding-left: 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 450;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.app-shell-nav-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.app-shell-nav-row-icon {
+  font-size: 1rem;
+  opacity: 0.75;
+}
+
+.app-shell-nav-chevron {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.app-shell-nav-group-label {
+  padding: 0.35rem 1.25rem 0.15rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.app-shell-nav-user {
+  padding: 0 1.25rem 0.35rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.app-shell-nav-soon {
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.app-shell-sidebar-footer {
+  padding: 0.5rem 1rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-shell-sidebar-help {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
 .topbar-menu-btn {
   display: none;
 }
 
-@media (max-width: 991px) {
-  .topbar-menu-btn {
-    display: inline-flex;
-  }
+.topbar-menu-btn--visible {
+  display: inline-flex;
 }
 
 .registration-workspace-toolbar {

@@ -8,9 +8,10 @@ const { Header } = Layout;
 
 type TopbarProps = {
   onMenuClick: () => void;
+  showMenuButton?: boolean;
 };
 
-export function Topbar({ onMenuClick }: TopbarProps) {
+export function Topbar({ onMenuClick, showMenuButton = false }: TopbarProps) {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
 
@@ -32,13 +33,15 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         borderBottom: '1px solid #f0f0f0',
       }}
     >
-      <Button
-        type="text"
-        icon={<MenuOutlined />}
-        className="topbar-menu-btn"
-        onClick={onMenuClick}
-        aria-label="Open navigation"
-      />
+      {showMenuButton ? (
+        <Button
+          type="text"
+          icon={<MenuOutlined />}
+          className="topbar-menu-btn topbar-menu-btn--visible"
+          onClick={onMenuClick}
+          aria-label="Open navigation"
+        />
+      ) : null}
       <Input
         prefix={<SearchOutlined />}
         placeholder="Global search (coming soon)"
