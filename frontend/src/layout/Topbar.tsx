@@ -1,6 +1,5 @@
-import { MenuOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Input, Layout } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { MenuOutlined } from '@ant-design/icons';
+import { Button, Layout, Typography } from 'antd';
 
 import { useAuth } from '../auth/AuthContext';
 
@@ -12,14 +11,8 @@ type TopbarProps = {
 };
 
 export function Topbar({ onMenuClick, showMenuButton = false }: TopbarProps) {
-  const navigate = useNavigate();
-  const { hasPermission } = useAuth();
-
-  const primaryAction = hasPermission('core.add_patient')
-    ? { label: 'Registration desk', path: '/registration' }
-    : hasPermission('core.add_user')
-      ? { label: 'New user', path: '/users/new' }
-      : null;
+  const { user } = useAuth();
+  const hospitalName = user?.branch_detail?.name?.trim();
 
   return (
     <Header
@@ -42,21 +35,11 @@ export function Topbar({ onMenuClick, showMenuButton = false }: TopbarProps) {
           aria-label="Open navigation"
         />
       ) : null}
-      <Input
-        prefix={<SearchOutlined />}
-        placeholder="Global search (coming soon)"
-        style={{ maxWidth: 420, flex: 1 }}
-        disabled
-      />
-      {primaryAction && (
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => navigate(primaryAction.path)}
-        >
-          {primaryAction.label}
-        </Button>
-      )}
+      {hospitalName ? (
+        <Typography.Text strong className="app-shell-topbar-hospital">
+          {hospitalName}
+        </Typography.Text>
+      ) : null}
     </Header>
   );
 }
