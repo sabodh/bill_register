@@ -20,7 +20,7 @@ import { readSidebarCollapsed, writeSidebarCollapsed } from './sidebarStorage';
 const { Sider } = Layout;
 const { useBreakpoint } = Grid;
 
-const SIDEBAR_WIDTH = 300;
+const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 72;
 
 type SidebarProps = {

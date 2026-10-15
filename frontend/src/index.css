@@ -662,9 +662,15 @@ body {
 }
 
 .lab-results-desk-layout .lab-results-detail {
-  flex: 7 1 0;
+  flex: 77 1 0;
   min-width: 0;
-  max-width: 70%;
+  max-width: 77%;
+}
+
+.lab-results-desk-layout .lab-bills-sidebar,
+.lab-results-desk-layout .lab-results-bills-sidebar {
+  flex: 23 1 0;
+  max-width: 23%;
 }
 
 .lab-bills-sidebar,
@@ -689,9 +695,14 @@ body {
 }
 
 .billing-desk-layout .billing-workspace-main {
-  flex: 7 1 0;
+  flex: 77 1 0;
   min-width: 0;
-  max-width: 70%;
+  max-width: 77%;
+}
+
+.billing-desk-layout .billing-recent-bills-column {
+  flex: 23 1 0;
+  max-width: 23%;
 }
 
 .billing-recent-bills-column {
