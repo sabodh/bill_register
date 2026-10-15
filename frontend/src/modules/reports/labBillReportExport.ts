@@ -1,7 +1,9 @@
 import type { Dayjs } from 'dayjs';
 
+import { formatPaymentMethod } from '../billing/pdf/billPdfFormat';
 import { formatMoney } from '../patients/patientRegistrationSchema';
 import { downloadCsv } from '../../utils/downloadCsv';
+import { paymentMethodExportHeaders } from './reportPaymentMethods';
 export type LabBillReportMode = 'all' | 'doctor' | 'hospital';
 
 type ExportColumn = {
@@ -17,22 +19,30 @@ function moneyCell(v: unknown): string {
   return Number.isFinite(n) ? formatMoney(n) : String(v);
 }
 
+const methodExportCols = (): ExportColumn[] =>
+  paymentMethodExportHeaders().map(({ header, key }) => ({
+    header,
+    value: (r) => moneyCell(r[key]),
+  }));
+
 function exportColumns(mode: LabBillReportMode): ExportColumn[] {
   if (mode === 'doctor') {
     return [
       { header: 'Doctor', value: (r) => String(r.doctor_name ?? '') },
-      { header: 'Bills', value: (r) => String(r.bill_count ?? '') },
+      { header: 'Total Bills', value: (r) => String(r.bill_count ?? '') },
       { header: 'Total', value: (r) => moneyCell(r.total_amount) },
-      { header: 'Advance', value: (r) => moneyCell(r.advance_paid) },
+      { header: 'Cash collected', value: (r) => moneyCell(r.advance_paid) },
+      ...methodExportCols(),
       { header: 'Balance', value: (r) => moneyCell(r.balance_due) },
     ];
   }
   if (mode === 'hospital') {
     return [
       { header: 'Hospital', value: (r) => String(r.hospital_name ?? '') },
-      { header: 'Bills', value: (r) => String(r.bill_count ?? '') },
+      { header: 'Total Bills', value: (r) => String(r.bill_count ?? '') },
       { header: 'Total', value: (r) => moneyCell(r.total_amount) },
-      { header: 'Advance', value: (r) => moneyCell(r.advance_paid) },
+      { header: 'Cash collected', value: (r) => moneyCell(r.advance_paid) },
+      ...methodExportCols(),
       { header: 'Balance', value: (r) => moneyCell(r.balance_due) },
     ];
   }
@@ -43,15 +53,20 @@ function exportColumns(mode: LabBillReportMode): ExportColumn[] {
     { header: 'Doctor', value: (r) => String(r.doctor_name ?? '') },
     { header: 'Hospital', value: (r) => String(r.hospital_name ?? '') },
     {
-      header: 'Sample collected',
+      header: 'Bill date',
       value: (r) => {
-        const v = r.sample_collected_at;
+        const v = r.bill_date;
         if (!v || typeof v !== 'string') return '';
         return DATE_FMT.format(new Date(v));
       },
     },
     { header: 'Total', value: (r) => moneyCell(r.total_amount) },
-    { header: 'Advance', value: (r) => moneyCell(r.advance_paid) },
+    { header: 'Cash collected', value: (r) => moneyCell(r.advance_paid) },
+    {
+      header: 'Payment',
+      value: (r) =>
+        typeof r.payment_method === 'string' ? formatPaymentMethod(r.payment_method) : '',
+    },
     { header: 'Balance', value: (r) => moneyCell(r.balance_due) },
   ];
 }

@@ -62,20 +62,20 @@ class LabTestInterpretationSerializer(serializers.ModelSerializer):
         fields = ["id", "note", "sort_order"]
 
 
-def _role_and_group(test_type: str, index: int) -> tuple[str, str]:
-    if test_type == TestType.SUBTEST:
+def _role_and_group(test_category: str, index: int) -> tuple[str, str]:
+    if test_category == TestType.SUBTEST:
         return ReferenceRowRole.SUBTEST, f"row-{index}"
-    if test_type == TestType.MULTIPLE_REFERENCE:
+    if test_category == TestType.MULTIPLE_REFERENCE:
         return ReferenceRowRole.VARIANT, "main"
     return ReferenceRowRole.SINGLE, "main"
 
 
 def _sync_reference_ranges(test: LabTest, rows: list[dict]) -> None:
     test.reference_ranges.all().delete()
-    if test.test_type == TestType.SPECIAL:
+    if test.test_category == TestType.SPECIAL:
         return
     for index, row in enumerate(rows):
-        role, result_group = _role_and_group(test.test_type, index)
+        role, result_group = _role_and_group(test.test_category, index)
         LabTestReferenceRange.objects.create(
             test=test,
             role=role,
@@ -90,7 +90,7 @@ def _sync_reference_ranges(test: LabTest, rows: list[dict]) -> None:
 
 def _sync_interpretations(test: LabTest, rows: list[dict]) -> None:
     test.interpretations.all().delete()
-    if test.test_type == TestType.SPECIAL:
+    if test.test_category == TestType.SPECIAL:
         return
     for index, row in enumerate(rows):
         LabTestInterpretation.objects.create(
@@ -201,6 +201,7 @@ class LabTestSerializer(serializers.ModelSerializer):
             "name",
             "code",
             "method_name",
+            "test_category",
             "test_type",
             "default_rate",
             "reference_ranges",

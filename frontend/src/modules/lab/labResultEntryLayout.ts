@@ -1,4 +1,4 @@
-import type { LabResultEntryLayout, LabTestType } from '../../api/types/models';
+import type { LabResultEntryLayout, LabTestCategory } from '../../api/types/models';
 import { formatVariantDisplayText } from './labVariantDisplay';
 
 export function formatRef(low?: string | null, high?: string | null) {
@@ -17,7 +17,7 @@ export type DraftRange = {
 
 export function resolveResultEntryLayout(
   layout: LabResultEntryLayout | null | undefined,
-  testType: LabTestType,
+  testCategory: LabTestCategory,
   title: string,
   methodName: string,
   draftRanges: DraftRange[],
@@ -29,10 +29,10 @@ export function resolveResultEntryLayout(
   const dec = (n: number | null | undefined) =>
     n == null || Number.isNaN(n) ? null : String(n);
 
-  if (testType === 'SUBTEST') {
+  if (testCategory === 'SUBTEST') {
     return {
       layout: 'panel',
-      test_type: testType,
+      test_category: testCategory,
       title,
       method_name: methodName,
       panel_title: title,
@@ -53,20 +53,20 @@ export function resolveResultEntryLayout(
     };
   }
 
-  if (testType === 'SPECIAL') {
+  if (testCategory === 'SPECIAL') {
     return {
       layout: 'billing_only',
-      test_type: testType,
+      test_category: testCategory,
       title,
       method_name: methodName,
     };
   }
 
-  if (testType === 'MULTIPLE_REFERENCE') {
+  if (testCategory === 'MULTIPLE_REFERENCE') {
     const unit = draftRanges[0]?.unit || '';
     return {
       layout: 'multi_reference',
-      test_type: testType,
+      test_category: testCategory,
       title,
       method_name: methodName,
       result_key: 'main',
@@ -91,7 +91,7 @@ export function resolveResultEntryLayout(
   const row = draftRanges[0];
   return {
     layout: 'single',
-    test_type: testType,
+    test_category: testCategory,
     title,
     method_name: methodName,
     result_key: 'main',

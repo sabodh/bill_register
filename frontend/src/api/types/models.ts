@@ -68,7 +68,23 @@ export interface DepartmentRecord {
   is_active: boolean;
 }
 
-export type LabTestType = 'NORMAL' | 'SUBTEST' | 'SPECIAL' | 'MULTIPLE_REFERENCE';
+/** Reference-range / result-entry behaviour (form label: Test category). */
+export type LabTestCategory = 'NORMAL' | 'SUBTEST' | 'SPECIAL' | 'MULTIPLE_REFERENCE';
+
+/** @deprecated Use LabTestCategory */
+export type LabTestType = LabTestCategory;
+
+export type LabTestTypeTier =
+  | 'TYPE_1'
+  | 'TYPE_2'
+  | 'TYPE_3'
+  | 'TYPE_4'
+  | 'TYPE_5'
+  | 'TYPE_6'
+  | 'TYPE_7'
+  | 'TYPE_8'
+  | 'TYPE_9'
+  | 'TYPE_10';
 
 export interface LabTestReferenceRange {
   id?: number;
@@ -84,7 +100,8 @@ export interface LabTestReferenceRange {
 export type LabResultEntryLayout =
   | {
       layout: 'single';
-      test_type: LabTestType;
+      test_category: LabTestCategory;
+      test_type?: LabTestTypeTier | null;
       title: string;
       method_name: string;
       result_key: string;
@@ -95,7 +112,8 @@ export type LabResultEntryLayout =
     }
   | {
       layout: 'panel';
-      test_type: LabTestType;
+      test_category: LabTestCategory;
+      test_type?: LabTestTypeTier | null;
       title: string;
       method_name: string;
       panel_title: string;
@@ -111,7 +129,8 @@ export type LabResultEntryLayout =
     }
   | {
       layout: 'multi_reference';
-      test_type: LabTestType;
+      test_category: LabTestCategory;
+      test_type?: LabTestTypeTier | null;
       title: string;
       method_name: string;
       result_key: string;
@@ -127,7 +146,8 @@ export type LabResultEntryLayout =
     }
   | {
       layout: 'billing_only';
-      test_type: LabTestType;
+      test_category: LabTestCategory;
+      test_type?: LabTestTypeTier | null;
       title: string;
       method_name: string;
     };
@@ -161,7 +181,8 @@ export interface LabTestRecord {
   name: string;
   code: string;
   method_name: string;
-  test_type: LabTestType;
+  test_category: LabTestCategory;
+  test_type: LabTestTypeTier;
   default_rate: string;
   reference_ranges: LabTestReferenceRange[];
   interpretations: LabTestInterpretation[];
@@ -334,7 +355,8 @@ export interface LabResultWorkItem {
   test_code: string;
   method_name: string;
   department_name: string;
-  test_type: LabTestType;
+  test_category: LabTestCategory;
+  test_type: LabTestTypeTier;
   from_package: boolean;
   package_name: string | null;
   result_entry_layout: LabResultEntryLayout;

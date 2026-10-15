@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
@@ -12,6 +12,11 @@ from django.utils.dateparse import parse_date, parse_datetime
 from apps.billing.models import Bill, BillStatus
 from apps.billing.services.balance import balance_due_for_bill
 from apps.lab.services.result_worklist import lab_result_bills_base_queryset
+from apps.reports.services.payment_method_totals import (
+    collected_by_method_annotations,
+    row_collected_by_method_fields,
+    serialize_collected_by_method,
+)
 
 
 def _parse_range(date_from: str | None, date_to: str | None) -> tuple[datetime | None, datetime | None]:
@@ -38,17 +43,33 @@ def lab_bill_report_queryset(branch_filtered_qs):
     return (
         branch_filtered_qs.filter(status=BillStatus.FINAL)
         .select_related("patient", "doctor", "hospital")
-        .order_by("-sample_collected_at", "-created_at")
+        .order_by("-created_at")
     )
 
 
 def apply_lab_bill_date_filter(qs, date_from: str | None, date_to: str | None):
     start, end = _parse_range(date_from, date_to)
     if start:
-        qs = qs.filter(sample_collected_at__gte=start)
+        qs = qs.filter(created_at__gte=start)
     if end:
-        qs = qs.filter(sample_collected_at__lte=end)
+        qs = qs.filter(created_at__lte=end)
     return qs
+
+
+def apply_lab_bill_search_filter(qs, search: str | None, profile: str = "list"):
+    term = (search or "").strip()
+    if not term:
+        return qs
+    if profile == "doctor":
+        return qs.filter(Q(doctor_name__icontains=term))
+    if profile == "hospital":
+        return qs.filter(Q(hospital_name__icontains=term))
+    return qs.filter(
+        Q(bill_number__icontains=term)
+        | Q(patient__name__icontains=term)
+        | Q(patient__uhid__icontains=term)
+        | Q(patient__phone__icontains=term)
+    )
 
 
 def _money(value: Decimal | None) -> str:
@@ -63,6 +84,7 @@ def summary_from_bills(qs) -> dict[str, Any]:
         total_amount=Coalesce(Sum("total_amount"), Decimal("0")),
         advance_paid=Coalesce(Sum("advance_paid"), Decimal("0")),
     )
+    method_agg = qs.aggregate(**collected_by_method_annotations())
     total = agg["total_amount"] or Decimal("0")
     advance = agg["advance_paid"] or Decimal("0")
     balance = total - advance
@@ -73,6 +95,7 @@ def summary_from_bills(qs) -> dict[str, Any]:
         "total_amount": _money(total),
         "advance_paid": _money(advance),
         "balance_due": _money(balance),
+        "collected_by_method": serialize_collected_by_method(method_agg, _money),
     }
 
 
@@ -86,10 +109,11 @@ def serialize_bill_row(bill: Bill) -> dict[str, Any]:
         "doctor_name": (bill.doctor_name or "").strip() or "—",
         "hospital_id": bill.hospital_id,
         "hospital_name": (bill.hospital_name or "").strip() or "—",
-        "sample_collected_at": bill.sample_collected_at.isoformat() if bill.sample_collected_at else None,
+        "bill_date": bill.created_at.isoformat() if bill.created_at else None,
         "total_amount": _money(bill.total_amount),
         "advance_paid": _money(bill.advance_paid),
         "balance_due": _money(balance_due_for_bill(bill)),
+        "payment_method": bill.payment_method,
     }
 
 
@@ -103,14 +127,15 @@ def lab_bill_by_doctor_report(qs) -> list[dict[str, Any]]:
         .annotate(
             bill_count=Count("id"),
             total_amount=Coalesce(Sum("total_amount"), Decimal("0")),
-            advance_paid=Coalesce(Sum("advance_paid"), Decimal("0")),
+            collected_total=Coalesce(Sum("advance_paid"), Decimal("0")),
+            **collected_by_method_annotations(),
         )
         .order_by("-total_amount")
     )
     rows = []
     for row in grouped:
         total = row["total_amount"] or Decimal("0")
-        advance = row["advance_paid"] or Decimal("0")
+        advance = row["collected_total"] or Decimal("0")
         balance = max(Decimal("0"), total - advance)
         name = (row["doctor_name"] or "").strip()
         if not name:
@@ -123,6 +148,7 @@ def lab_bill_by_doctor_report(qs) -> list[dict[str, Any]]:
                 "total_amount": _money(total),
                 "advance_paid": _money(advance),
                 "balance_due": _money(balance),
+                **row_collected_by_method_fields(row, _money),
             }
         )
     return rows
@@ -134,14 +160,15 @@ def lab_bill_by_hospital_report(qs) -> list[dict[str, Any]]:
         .annotate(
             bill_count=Count("id"),
             total_amount=Coalesce(Sum("total_amount"), Decimal("0")),
-            advance_paid=Coalesce(Sum("advance_paid"), Decimal("0")),
+            collected_total=Coalesce(Sum("advance_paid"), Decimal("0")),
+            **collected_by_method_annotations(),
         )
         .order_by("-total_amount")
     )
     rows = []
     for row in grouped:
         total = row["total_amount"] or Decimal("0")
-        advance = row["advance_paid"] or Decimal("0")
+        advance = row["collected_total"] or Decimal("0")
         balance = max(Decimal("0"), total - advance)
         name = (row["hospital_name"] or "").strip()
         if not name:
@@ -154,12 +181,20 @@ def lab_bill_by_hospital_report(qs) -> list[dict[str, Any]]:
                 "total_amount": _money(total),
                 "advance_paid": _money(advance),
                 "balance_due": _money(balance),
+                **row_collected_by_method_fields(row, _money),
             }
         )
     return rows
 
 
-def build_lab_bill_report(branch_filtered_qs, date_from: str | None, date_to: str | None) -> Any:
+def build_lab_bill_report(
+    branch_filtered_qs,
+    date_from: str | None,
+    date_to: str | None,
+    search: str | None = None,
+    search_profile: str = "list",
+) -> Any:
     lab_ids = lab_result_bills_base_queryset().values("pk")
     qs = lab_bill_report_queryset(branch_filtered_qs.filter(pk__in=lab_ids))
-    return apply_lab_bill_date_filter(qs, date_from, date_to)
+    qs = apply_lab_bill_date_filter(qs, date_from, date_to)
+    return apply_lab_bill_search_filter(qs, search, search_profile)

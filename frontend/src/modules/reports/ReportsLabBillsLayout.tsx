@@ -5,6 +5,7 @@ const TAB_ITEMS = [
   { key: '/reports/lab-bills', label: 'All bills' },
   { key: '/reports/lab-bills/doctor', label: 'Doctor wise' },
   { key: '/reports/lab-bills/hospital', label: 'Hospital wise' },
+  { key: '/reports/lab-bills/test-count', label: 'Test count' },
 ];
 
 export function ReportsLabBillsLayout() {

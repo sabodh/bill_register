@@ -1,7 +1,7 @@
-import type { LabTestType } from '../../api/types/models';
+import type { LabTestCategory } from '../../api/types/models';
 
-export function getRangeSectionMeta(testType: LabTestType) {
-  switch (testType) {
+export function getRangeSectionMeta(testCategory: LabTestCategory) {
+  switch (testCategory) {
     case 'SPECIAL':
       return {
         showSection: false,

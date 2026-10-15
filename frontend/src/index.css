@@ -1237,6 +1237,10 @@ body {
   border-bottom: 1px solid #f0f0f0;
 }
 
+.reports-summary-row--methods {
+  margin-top: -0.25rem;
+}
+
 .reports-lab-bills-layout .ant-tabs-nav {
   margin-bottom: 0.75rem;
 }

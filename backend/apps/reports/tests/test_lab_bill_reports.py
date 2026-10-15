@@ -64,3 +64,12 @@ def test_lab_bill_report_by_doctor(auth_client, branch, admin_user):
 
     hospital_res = auth_client.get("/api/reports/lab-bills/by-hospital/")
     assert hospital_res.status_code == 200, hospital_res.data
+
+    search_res = auth_client.get("/api/reports/lab-bills/", {"search": "Test Patient"})
+    assert search_res.status_code == 200, search_res.data
+    assert search_res.data["summary"]["bill_count"] >= 1
+    assert any(row.get("patient_name") == "Test Patient" for row in search_res.data["rows"])
+
+    miss_res = auth_client.get("/api/reports/lab-bills/", {"search": "no-such-patient-xyz"})
+    assert miss_res.status_code == 200
+    assert miss_res.data["summary"]["bill_count"] == 0

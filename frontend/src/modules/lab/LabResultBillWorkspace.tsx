@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { apiClient } from '../../api/client';
 import { apiErrorMessage } from '../../api/apiErrorMessage';
-import type { LabResultBillDetail, LabTestType } from '../../api/types/models';
+import type { LabResultBillDetail, LabTestCategory } from '../../api/types/models';
 import {
   BillVisitContextFields,
   billVisitContextFromDetail,
@@ -227,7 +227,7 @@ function LabResultBillDetailPanel({
                 <LabTestResultEntryPreview
                   editable
                   layout={item.result_entry_layout}
-                  testType={item.test_type as LabTestType}
+                  testCategory={item.test_category as LabTestCategory}
                   title={item.test_name}
                   methodName={item.method_name}
                   departmentName={item.department_name}

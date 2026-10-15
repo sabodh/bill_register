@@ -18,19 +18,41 @@ import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { apiClient } from '../../api/client';
-import type { DepartmentRecord, LabTestRecord, LabTestType, Paginated } from '../../api/types/models';
+import type {
+  DepartmentRecord,
+  LabTestCategory,
+  LabTestRecord,
+  LabTestTypeTier,
+  Paginated,
+} from '../../api/types/models';
 import { useAuth } from '../../auth/AuthContext';
 import { ErrorBlock, LoadingBlock } from '../../components/QueryState';
 import { formatMoney } from '../patients/patientRegistrationSchema';
 import { getRangeSectionMeta } from './labTestRangeSection';
 import { LabTestResultEntryPreview } from './LabTestResultEntryPreview';
 
-const testTypeOptions: { value: LabTestType; label: string }[] = [
+const testCategoryOptions: { value: LabTestCategory; label: string }[] = [
   { value: 'NORMAL', label: 'Normal' },
   { value: 'SUBTEST', label: 'Subtest' },
   { value: 'SPECIAL', label: 'Special test' },
   { value: 'MULTIPLE_REFERENCE', label: 'Has multiple reference range' },
 ];
+
+const testTypeTierOptions: { value: LabTestTypeTier; label: string }[] = [
+  'TYPE_1',
+  'TYPE_2',
+  'TYPE_3',
+  'TYPE_4',
+  'TYPE_5',
+  'TYPE_6',
+  'TYPE_7',
+  'TYPE_8',
+  'TYPE_9',
+  'TYPE_10',
+].map((value) => ({
+  value: value as LabTestTypeTier,
+  label: value.replace('TYPE_', 'Type-'),
+}));
 
 const emptyRange = () => ({
   reference_text: '',
@@ -45,7 +67,19 @@ const schema = z.object({
   name: z.string().min(1, 'Test name is required'),
   code: z.string().optional(),
   method_name: z.string().optional(),
-  test_type: z.enum(['NORMAL', 'SUBTEST', 'SPECIAL', 'MULTIPLE_REFERENCE']),
+  test_category: z.enum(['NORMAL', 'SUBTEST', 'SPECIAL', 'MULTIPLE_REFERENCE']),
+  test_type: z.enum([
+    'TYPE_1',
+    'TYPE_2',
+    'TYPE_3',
+    'TYPE_4',
+    'TYPE_5',
+    'TYPE_6',
+    'TYPE_7',
+    'TYPE_8',
+    'TYPE_9',
+    'TYPE_10',
+  ]),
   department: z.number().nullable().optional(),
   default_rate: z.number().min(0),
   reference_ranges: z.array(
@@ -65,7 +99,8 @@ const defaultFormValues: FormValues = {
   name: '',
   code: '',
   method_name: '',
-  test_type: 'NORMAL',
+  test_category: 'NORMAL',
+  test_type: 'TYPE_1',
   department: null,
   default_rate: 0,
   reference_ranges: [emptyRange()],
@@ -128,13 +163,16 @@ export function LabTestFormPanel({
   } = useFieldArray({ control, name: 'interpretations' });
 
   const watchedName = watch('name');
-  const watchedTestType = watch('test_type');
+  const watchedTestCategory = watch('test_category');
   const watchedMethod = watch('method_name');
   const watchedRanges = watch('reference_ranges');
   const watchedDepartment = watch('department');
   const watchedDepartmentName =
     departmentOptions.find((d) => d.value === watchedDepartment)?.label ?? '';
-  const rangeSection = useMemo(() => getRangeSectionMeta(watchedTestType), [watchedTestType]);
+  const rangeSection = useMemo(
+    () => getRangeSectionMeta(watchedTestCategory),
+    [watchedTestCategory],
+  );
 
   const onTitleChangeRef = useRef(onTitleChange);
   onTitleChangeRef.current = onTitleChange;
@@ -157,7 +195,8 @@ export function LabTestFormPanel({
         name: data.name,
         code: data.code ?? '',
         method_name: data.method_name ?? '',
-        test_type: data.test_type ?? 'NORMAL',
+        test_category: data.test_category ?? 'NORMAL',
+        test_type: data.test_type || 'TYPE_1',
         department: data.department,
         default_rate: Number(data.default_rate),
         reference_ranges:
@@ -178,7 +217,7 @@ export function LabTestFormPanel({
   }, [data, reset]);
 
   useEffect(() => {
-    if (watchedTestType === 'SPECIAL') {
+    if (watchedTestCategory === 'SPECIAL') {
       setValue('reference_ranges', []);
       setValue('interpretations', []);
       return;
@@ -188,16 +227,16 @@ export function LabTestFormPanel({
       setValue('reference_ranges', [emptyRange()]);
       setValue('interpretations', [emptyNote()]);
     }
-    if (watchedTestType !== 'NORMAL') {
+    if (watchedTestCategory !== 'NORMAL') {
       return;
     }
     const current = getValues('reference_ranges');
     if (current.length > 1) {
       setValue('reference_ranges', [current[0] ?? emptyRange()]);
     }
-  }, [watchedTestType, getValues, setValue]);
+  }, [watchedTestCategory, getValues, setValue]);
 
-  const isBillingOnly = watchedTestType === 'SPECIAL';
+  const isBillingOnly = watchedTestCategory === 'SPECIAL';
 
   const rangeColumns = useMemo(() => {
     const cols: Parameters<typeof Table>[0]['columns'] = [];
@@ -211,7 +250,7 @@ export function LabTestFormPanel({
             render={({ field }) => (
               <Input
                 {...field}
-                placeholder={watchedTestType === 'SUBTEST' ? 'Neutrophils' : 'Male'}
+                placeholder={watchedTestCategory === 'SUBTEST' ? 'Neutrophils' : 'Male'}
               />
             )}
           />
@@ -285,14 +324,15 @@ export function LabTestFormPanel({
     rangeFields.length,
     rangeSection,
     removeRange,
-    watchedTestType,
+    watchedTestCategory,
   ]);
 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const billingOnly = values.test_type === 'SPECIAL';
+      const billingOnly = values.test_category === 'SPECIAL';
       const payload = {
         ...values,
+        test_type: values.test_type || 'TYPE_1',
         branch: user?.branch,
         reference_ranges: billingOnly
           ? []
@@ -391,11 +431,20 @@ export function LabTestFormPanel({
             )}
           />
           <Controller
+            name="test_category"
+            control={control}
+            render={({ field }) => (
+              <Form.Item label="Test category">
+                <Select {...field} options={testCategoryOptions} />
+              </Form.Item>
+            )}
+          />
+          <Controller
             name="test_type"
             control={control}
             render={({ field }) => (
               <Form.Item label="Test type">
-                <Select {...field} options={testTypeOptions} />
+                <Select {...field} options={testTypeTierOptions} />
               </Form.Item>
             )}
           />
@@ -463,7 +512,7 @@ export function LabTestFormPanel({
       <div className="billing-form-section lab-result-preview-section">
         <LabTestResultEntryPreview
           layout={data?.result_entry_layout}
-          testType={watchedTestType}
+          testCategory={watchedTestCategory}
           title={watchedName}
           methodName={watchedMethod ?? ''}
           departmentName={watchedDepartmentName}

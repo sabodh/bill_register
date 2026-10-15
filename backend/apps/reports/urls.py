@@ -4,6 +4,7 @@ from apps.reports.views import (
     LabBillReportByDoctorView,
     LabBillReportByHospitalView,
     LabBillReportListView,
+    LabTestCountReportView,
 )
 
 urlpatterns = [
@@ -14,4 +15,5 @@ urlpatterns = [
         LabBillReportByHospitalView.as_view(),
         name="reports-lab-bills-by-hospital",
     ),
+    path("lab-tests/count/", LabTestCountReportView.as_view(), name="reports-lab-test-count"),
 ]

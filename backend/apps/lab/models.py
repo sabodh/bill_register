@@ -23,11 +23,28 @@ class TestDepartment(BranchScopedModel):
         return self.name
 
 
-class TestType(models.TextChoices):
+class TestCategory(models.TextChoices):
     NORMAL = "NORMAL", "Normal"
     SUBTEST = "SUBTEST", "Subtest"
     SPECIAL = "SPECIAL", "Special test"
     MULTIPLE_REFERENCE = "MULTIPLE_REFERENCE", "Has multiple reference range"
+
+
+# Backwards-compatible alias used in services and tests.
+TestType = TestCategory
+
+
+class LabTestType(models.TextChoices):
+    TYPE_1 = "TYPE_1", "Type-1"
+    TYPE_2 = "TYPE_2", "Type-2"
+    TYPE_3 = "TYPE_3", "Type-3"
+    TYPE_4 = "TYPE_4", "Type-4"
+    TYPE_5 = "TYPE_5", "Type-5"
+    TYPE_6 = "TYPE_6", "Type-6"
+    TYPE_7 = "TYPE_7", "Type-7"
+    TYPE_8 = "TYPE_8", "Type-8"
+    TYPE_9 = "TYPE_9", "Type-9"
+    TYPE_10 = "TYPE_10", "Type-10"
 
 
 class ReferenceRowRole(models.TextChoices):
@@ -49,10 +66,15 @@ class LabTest(BranchScopedModel):
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=32, blank=True, db_index=True)
     method_name = models.CharField(max_length=200, blank=True)
-    test_type = models.CharField(
+    test_category = models.CharField(
         max_length=32,
-        choices=TestType.choices,
-        default=TestType.NORMAL,
+        choices=TestCategory.choices,
+        default=TestCategory.NORMAL,
+    )
+    test_type = models.CharField(
+        max_length=16,
+        choices=LabTestType.choices,
+        default=LabTestType.TYPE_1,
     )
     default_rate = models.DecimalField(
         max_digits=12,

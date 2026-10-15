@@ -11,7 +11,7 @@ def test_subtest_panel_layout(branch):
         branch=branch,
         department=dept,
         name="DIFFERENTIAL LEUKOCYTE COUNT (DC)",
-        test_type=TestType.SUBTEST,
+        test_category=TestType.SUBTEST,
         default_rate="100",
     )
     LabTestReferenceRange.objects.create(

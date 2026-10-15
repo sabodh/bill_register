@@ -78,7 +78,7 @@ export function LabTestFullFormDisplay({
 }) {
   const spec = resolveResultEntryLayout(
     test.result_entry_layout,
-    test.test_type,
+    test.test_category,
     test.name,
     test.method_name ?? '',
     rangesToDraft(test.reference_ranges ?? []),

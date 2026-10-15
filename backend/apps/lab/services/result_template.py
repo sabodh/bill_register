@@ -57,15 +57,16 @@ def build_result_entry_layout(test: LabTest) -> dict[str, Any]:
     ranges = list(test.reference_ranges.all())
     base = {
         "test_id": test.id,
-        "test_type": test.test_type,
+        "test_category": test.test_category,
+        "test_type": test.test_type or None,
         "title": test.name,
         "method_name": test.method_name or "",
     }
 
-    if test.test_type == TestType.SPECIAL:
+    if test.test_category == TestType.SPECIAL:
         return {**base, "layout": "billing_only"}
 
-    if test.test_type == TestType.SUBTEST:
+    if test.test_category == TestType.SUBTEST:
         return {
             **base,
             "layout": "panel",
@@ -89,7 +90,7 @@ def build_result_entry_layout(test: LabTest) -> dict[str, Any]:
             ],
         }
 
-    if test.test_type == TestType.MULTIPLE_REFERENCE:
+    if test.test_category == TestType.MULTIPLE_REFERENCE:
         unit = ranges[0].unit if ranges else ""
         return {
             **base,

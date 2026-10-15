@@ -15,6 +15,7 @@ class LabResultWorkItem:
     test_code: str
     method_name: str
     department_name: str
+    test_category: str
     test_type: str
     from_package: bool
     package_name: str | None
@@ -28,6 +29,7 @@ class LabResultWorkItem:
             "test_code": self.test_code,
             "method_name": self.method_name,
             "department_name": self.department_name,
+            "test_category": self.test_category,
             "test_type": self.test_type,
             "from_package": self.from_package,
             "package_name": self.package_name,
@@ -84,7 +86,8 @@ def _work_item_for_test(
         test_code=test.code or "",
         method_name=test.method_name or "",
         department_name=dept_name,
-        test_type=test.test_type,
+        test_category=test.test_category,
+        test_type=test.test_type or "TYPE_1",
         from_package=from_package,
         package_name=package_name,
         result_entry_layout=build_result_entry_layout(test),

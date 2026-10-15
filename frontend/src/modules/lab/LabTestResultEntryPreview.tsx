@@ -1,6 +1,6 @@
 import { Input, Typography } from 'antd';
 
-import type { LabResultEntryLayout, LabTestType } from '../../api/types/models';
+import type { LabResultEntryLayout, LabTestCategory } from '../../api/types/models';
 import { formatVariantDisplayText } from './labVariantDisplay';
 import { resolveResultEntryLayout, type DraftRange } from './labResultEntryLayout';
 
@@ -175,7 +175,7 @@ function rowsFromLayout(
 
 export function LabTestResultEntryPreview({
   layout,
-  testType,
+  testCategory,
   title,
   methodName,
   draftRanges,
@@ -185,7 +185,7 @@ export function LabTestResultEntryPreview({
   onValueChange,
 }: {
   layout?: LabResultEntryLayout | null;
-  testType: LabTestType;
+  testCategory: LabTestCategory;
   title: string;
   methodName: string;
   draftRanges: DraftRange[];
@@ -194,7 +194,13 @@ export function LabTestResultEntryPreview({
   values?: Record<string, string>;
   onValueChange?: (resultKey: string, value: string) => void;
 }) {
-  const spec = resolveResultEntryLayout(layout, testType, title.trim() || 'Test name', methodName, draftRanges);
+  const spec = resolveResultEntryLayout(
+    layout,
+    testCategory,
+    title.trim() || 'Test name',
+    methodName,
+    draftRanges,
+  );
 
   if (spec.layout === 'billing_only') {
     return null;

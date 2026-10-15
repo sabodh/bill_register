@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { LabBillReportsPage } from './modules/reports/LabBillReportsPage';
+import { LabTestCountReportPage } from './modules/reports/LabTestCountReportPage';
 import { ReportsIndexRedirect, ReportsLabBillsLayout } from './modules/reports/ReportsLabBillsLayout';
 
 import { LoginPage } from './auth/LoginPage';
@@ -71,7 +72,12 @@ export default function App() {
               <Route index element={<LabBillReportsPage mode="all" />} />
               <Route path="doctor" element={<LabBillReportsPage mode="doctor" />} />
               <Route path="hospital" element={<LabBillReportsPage mode="hospital" />} />
+              <Route path="test-count" element={<LabTestCountReportPage />} />
             </Route>
+            <Route
+              path="reports/lab-test-count"
+              element={<Navigate to="/reports/lab-bills/test-count" replace />}
+            />
             <Route path="coming-soon/:module" element={<ComingSoonPage />} />
           </Route>
         </Route>

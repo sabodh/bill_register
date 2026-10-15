@@ -1,14 +1,21 @@
-import { DownloadOutlined, PrinterOutlined } from '@ant-design/icons';
-import { Button, Card, DatePicker, Space, Statistic, Table, Typography } from 'antd';
-import { useQuery } from '@tanstack/react-query';
+import { DownloadOutlined, PrinterOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Card, DatePicker, Input, Space, Spin, Statistic, Table, Typography } from 'antd';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useCallback, useMemo, useState } from 'react';
 
 import { apiClient } from '../../api/client';
 import { PageHeader } from '../../components/PageHeader';
 import { ErrorBlock, LoadingBlock } from '../../components/QueryState';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { formatMoney } from '../patients/patientRegistrationSchema';
+import { formatPaymentMethod } from '../billing/pdf/billPdfFormat';
 import { downloadLabBillReportCsv, type LabBillReportMode } from './labBillReportExport';
+import {
+  collectedByMethodColumns,
+  PAYMENT_METHOD_CODES,
+  type CollectedByMethod,
+} from './reportPaymentMethods';
 
 export type { LabBillReportMode };
 
@@ -17,6 +24,7 @@ type ReportSummary = {
   total_amount: string;
   advance_paid: string;
   balance_due: string;
+  collected_by_method: CollectedByMethod;
 };
 
 type LabBillReportResponse = {
@@ -38,6 +46,12 @@ const TITLES: Record<LabBillReportMode, string> = {
   hospital: 'Lab bills — hospital wise',
 };
 
+const SEARCH_PLACEHOLDER: Record<LabBillReportMode, string> = {
+  all: 'Bill no., patient name, ID, phone',
+  doctor: 'Search doctor name',
+  hospital: 'Search hospital name',
+};
+
 function defaultRange(): [Dayjs, Dayjs] {
   const end = dayjs().endOf('day');
   const start = dayjs().subtract(30, 'day').startOf('day');
@@ -50,15 +64,21 @@ type LabBillReportsPageProps = {
 
 export function LabBillReportsPage({ mode }: LabBillReportsPageProps) {
   const [[dateFrom, dateTo], setRange] = useState<[Dayjs, Dayjs]>(defaultRange);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 450);
   const [forPrint, setForPrint] = useState(false);
 
-  const params = useMemo(
-    () => ({
+  const params = useMemo(() => {
+    const next: Record<string, string> = {
       date_from: dateFrom.toISOString(),
       date_to: dateTo.toISOString(),
-    }),
-    [dateFrom, dateTo],
-  );
+    };
+    const term = debouncedSearch.trim();
+    if (term) {
+      next.search = term;
+    }
+    return next;
+  }, [dateFrom, dateTo, debouncedSearch]);
 
   const reportQuery = useQuery({
     queryKey: ['reports', 'lab-bills', mode, params],
@@ -66,61 +86,54 @@ export function LabBillReportsPage({ mode }: LabBillReportsPageProps) {
       const { data } = await apiClient.get<LabBillReportResponse>(ENDPOINTS[mode], { params });
       return data;
     },
+    placeholderData: keepPreviousData,
   });
 
+  const isInitialLoad = reportQuery.isLoading && !reportQuery.data;
+  const isRefreshing = reportQuery.isFetching && !isInitialLoad;
+
+  const methodColumns = useMemo(() => collectedByMethodColumns(), []);
+
   const columns = useMemo(() => {
+    const balanceColumn = {
+      title: 'Balance',
+      dataIndex: 'balance_due',
+      key: 'balance_due',
+      align: 'right' as const,
+      render: (v: string) => formatMoney(Number(v)),
+    };
+    const totalColumn = {
+      title: 'Total',
+      dataIndex: 'total_amount',
+      key: 'total_amount',
+      align: 'right' as const,
+      render: (v: string) => formatMoney(Number(v)),
+    };
+    const collectedColumn = {
+      title: 'Cash collected',
+      dataIndex: 'advance_paid',
+      key: 'advance_paid',
+      align: 'right' as const,
+      render: (v: string) => formatMoney(Number(v)),
+    };
     if (mode === 'doctor') {
       return [
         { title: 'Doctor', dataIndex: 'doctor_name', key: 'doctor_name' },
-        { title: 'Bills', dataIndex: 'bill_count', key: 'bill_count', width: 72 },
-        {
-          title: 'Total',
-          dataIndex: 'total_amount',
-          key: 'total_amount',
-          align: 'right' as const,
-          render: (v: string) => formatMoney(Number(v)),
-        },
-        {
-          title: 'Advance',
-          dataIndex: 'advance_paid',
-          key: 'advance_paid',
-          align: 'right' as const,
-          render: (v: string) => formatMoney(Number(v)),
-        },
-        {
-          title: 'Balance',
-          dataIndex: 'balance_due',
-          key: 'balance_due',
-          align: 'right' as const,
-          render: (v: string) => formatMoney(Number(v)),
-        },
+        { title: 'Total Bills', dataIndex: 'bill_count', key: 'bill_count', width: 96 },
+        totalColumn,
+        collectedColumn,
+        ...methodColumns,
+        balanceColumn,
       ];
     }
     if (mode === 'hospital') {
       return [
         { title: 'Hospital', dataIndex: 'hospital_name', key: 'hospital_name' },
-        { title: 'Bills', dataIndex: 'bill_count', key: 'bill_count', width: 72 },
-        {
-          title: 'Total',
-          dataIndex: 'total_amount',
-          key: 'total_amount',
-          align: 'right' as const,
-          render: (v: string) => formatMoney(Number(v)),
-        },
-        {
-          title: 'Advance',
-          dataIndex: 'advance_paid',
-          key: 'advance_paid',
-          align: 'right' as const,
-          render: (v: string) => formatMoney(Number(v)),
-        },
-        {
-          title: 'Balance',
-          dataIndex: 'balance_due',
-          key: 'balance_due',
-          align: 'right' as const,
-          render: (v: string) => formatMoney(Number(v)),
-        },
+        { title: 'Total Bills', dataIndex: 'bill_count', key: 'bill_count', width: 96 },
+        totalColumn,
+        collectedColumn,
+        ...methodColumns,
+        balanceColumn,
       ];
     }
     return [
@@ -130,9 +143,9 @@ export function LabBillReportsPage({ mode }: LabBillReportsPageProps) {
       { title: 'Doctor', dataIndex: 'doctor_name', key: 'doctor_name' },
       { title: 'Hospital', dataIndex: 'hospital_name', key: 'hospital_name' },
       {
-        title: 'Sample collected',
-        dataIndex: 'sample_collected_at',
-        key: 'sample_collected_at',
+        title: 'Bill date',
+        dataIndex: 'bill_date',
+        key: 'bill_date',
         width: 160,
         render: (v: string) =>
           v
@@ -148,26 +161,21 @@ export function LabBillReportsPage({ mode }: LabBillReportsPageProps) {
         align: 'right' as const,
         render: (v: string) => formatMoney(Number(v)),
       },
+      collectedColumn,
       {
-        title: 'Advance',
-        dataIndex: 'advance_paid',
-        key: 'advance_paid',
-        align: 'right' as const,
-        render: (v: string) => formatMoney(Number(v)),
+        title: 'Payment',
+        dataIndex: 'payment_method',
+        key: 'payment_method',
+        width: 88,
+        render: (v: string) => (v ? formatPaymentMethod(v) : '—'),
       },
-      {
-        title: 'Balance',
-        dataIndex: 'balance_due',
-        key: 'balance_due',
-        align: 'right' as const,
-        render: (v: string) => formatMoney(Number(v)),
-      },
+      balanceColumn,
     ];
-  }, [mode]);
+  }, [mode, methodColumns]);
 
   const summary = reportQuery.data?.summary;
   const rows = reportQuery.data?.rows ?? [];
-  const canExport = rows.length > 0 && !reportQuery.isLoading;
+  const canExport = rows.length > 0 && !isInitialLoad;
 
   const handlePrint = useCallback(() => {
     setForPrint(true);
@@ -191,7 +199,7 @@ export function LabBillReportsPage({ mode }: LabBillReportsPageProps) {
       <div className="reports-no-print">
         <PageHeader
           title={TITLES[mode]}
-          subtitle="Final lab bills for your branch (sample collection date)."
+          subtitle="Final lab bills for your branch (bill date)."
           breadcrumbs={[{ title: 'Reports' }, { title: 'Lab bill reports' }, { title: TITLES[mode] }]}
           extra={
             <Space wrap>
@@ -217,10 +225,10 @@ export function LabBillReportsPage({ mode }: LabBillReportsPageProps) {
         <div className="reports-print-meta">
           <Typography.Text strong>{TITLES[mode]}</Typography.Text>
           <br />
-          <Typography.Text>Sample collected: {rangeLabel}</Typography.Text>
+          <Typography.Text>Bill date: {rangeLabel}</Typography.Text>
         </div>
         <Space wrap className="reports-no-print" style={{ marginBottom: 16 }}>
-          <Typography.Text type="secondary">Sample collected</Typography.Text>
+          <Typography.Text type="secondary">Bill date</Typography.Text>
           <DatePicker.RangePicker
             value={[dateFrom, dateTo]}
             onChange={(values) => {
@@ -230,18 +238,46 @@ export function LabBillReportsPage({ mode }: LabBillReportsPageProps) {
             }}
             allowClear={false}
           />
+          <Input
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder={SEARCH_PLACEHOLDER[mode]}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            suffix={
+              isRefreshing || search !== debouncedSearch ? (
+                <Spin size="small" />
+              ) : null
+            }
+            style={{ width: mode === 'all' ? 300 : 240 }}
+          />
         </Space>
 
-        {reportQuery.isLoading ? <LoadingBlock /> : null}
-        {reportQuery.isError ? <ErrorBlock message="Could not load report" /> : null}
+        {isInitialLoad ? <LoadingBlock /> : null}
+        {reportQuery.isError && !reportQuery.data ? (
+          <ErrorBlock message="Could not load report" />
+        ) : null}
 
         {summary ? (
-          <div className="reports-summary-row">
-            <Statistic title="Bills" value={summary.bill_count} />
-            <Statistic title="Total" value={formatMoney(Number(summary.total_amount))} />
-            <Statistic title="Advance" value={formatMoney(Number(summary.advance_paid))} />
-            <Statistic title="Balance due" value={formatMoney(Number(summary.balance_due))} />
-          </div>
+          <>
+            <div className="reports-summary-row">
+              <Statistic title="Total Bills" value={summary.bill_count} />
+              <Statistic title="Total" value={formatMoney(Number(summary.total_amount))} />
+              <Statistic title="Cash collected" value={formatMoney(Number(summary.advance_paid))} />
+              <Statistic title="Balance due" value={formatMoney(Number(summary.balance_due))} />
+            </div>
+            {summary.collected_by_method ? (
+              <div className="reports-summary-row reports-summary-row--methods">
+                {PAYMENT_METHOD_CODES.map((code) => (
+                  <Statistic
+                    key={code}
+                    title={formatPaymentMethod(code)}
+                    value={formatMoney(Number(summary.collected_by_method[code] ?? 0))}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </>
         ) : null}
 
         {reportQuery.data ? (
@@ -257,12 +293,13 @@ export function LabBillReportsPage({ mode }: LabBillReportsPageProps) {
             }
             columns={columns}
             dataSource={reportQuery.data.rows}
+            loading={isRefreshing}
             pagination={
               forPrint
                 ? false
                 : { pageSize: 25, showSizeChanger: true }
             }
-            scroll={{ x: mode === 'all' ? 1100 : undefined }}
+            scroll={{ x: mode === 'all' ? 1200 : mode === 'doctor' || mode === 'hospital' ? 1100 : undefined }}
           />
         ) : null}
         {mode === 'all' && reportQuery.data && reportQuery.data.rows.length >= 500 ? (

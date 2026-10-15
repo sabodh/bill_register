@@ -141,6 +141,12 @@ export const menuConfig: MenuItemConfig[] = [
             path: '/reports/lab-bills/hospital',
             permission: 'reports.view_report',
           },
+          {
+            key: 'reports-lab-bills-test-count',
+            label: 'Test count',
+            path: '/reports/lab-bills/test-count',
+            permission: 'reports.view_report',
+          },
         ],
       },
     ],
