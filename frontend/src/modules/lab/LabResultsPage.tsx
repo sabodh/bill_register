@@ -1,9 +1,10 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { Button, Card, Modal, Tabs, Typography } from 'antd';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import type { LabResultBillSummary, Patient } from '../../api/types/models';
+import { apiClient } from '../../api/client';
+import type { LabResultBillSummary, Paginated, Patient } from '../../api/types/models';
 import { PatientSessionLookup } from '../../components/PatientSessionLookup';
 import { PageHeader } from '../../components/PageHeader';
 import { BillPdfPreviewModal } from '../billing/pdf/BillPdfPreviewModal';
@@ -61,6 +62,7 @@ export function LabResultsPage() {
   const [selectedRecentBillId, setSelectedRecentBillId] = useState<number | null>(null);
   const [pdfPreviewSnapshot, setPdfPreviewSnapshot] = useState<BillPdfSnapshot | null>(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const patientBillLoadRef = useRef(0);
 
   const openBillPdfPreview = useCallback((snapshot: BillPdfSnapshot) => {
     setPdfPreviewSnapshot(snapshot);
@@ -178,11 +180,38 @@ export function LabResultsPage() {
   );
 
   const handlePatientChange = (patient: Patient | null) => {
+    const loadId = ++patientBillLoadRef.current;
     setSelectedPatient(patient);
     setSelectedRecentBillId(null);
     const fresh = createResultTab();
     setTabs([fresh]);
     setActiveKey(fresh.key);
+
+    if (patient == null) {
+      return;
+    }
+
+    void apiClient
+      .get<Paginated<LabResultBillSummary>>('/lab/result-bills/', {
+        params: { patient: patient.id, page_size: 1, results_status: 'pending' },
+      })
+      .then(({ data }) => {
+        if (patientBillLoadRef.current !== loadId) {
+          return;
+        }
+        const latest = data.results[0];
+        if (!latest) {
+          return;
+        }
+        setSelectedRecentBillId(latest.id);
+        setTabs((prev) =>
+          prev.map((t) =>
+            t.key === fresh.key
+              ? { ...t, billId: latest.id, label: 'Loading…', defaultLabel: 'Bill' }
+              : t,
+          ),
+        );
+      });
   };
 
   const handleOpenBill = useCallback(

@@ -1,4 +1,5 @@
 import { Input, Typography } from 'antd';
+import type { KeyboardEvent } from 'react';
 
 import type { LabResultEntryLayout, LabTestCategory } from '../../api/types/models';
 import {
@@ -7,6 +8,7 @@ import {
   type ReferenceBand,
 } from './labResultReferenceCheck';
 import { formatVariantDisplayText } from './labVariantDisplay';
+import { focusNextLabResultField } from './labResultFieldFocus';
 import { resolveResultEntryLayout, type DraftRange } from './labResultEntryLayout';
 
 type ResultGridRow = {
@@ -22,32 +24,26 @@ type ResultGridRow = {
   referenceBands?: ReferenceBand[];
 };
 
-const RESULT_FIELD_SELECTOR =
-  '.billing-tab-panel:not([hidden]) .lab-results-detail-panel .lab-result-preview-textarea textarea:not([disabled])';
-
-function focusNextResultField(current: HTMLTextAreaElement) {
-  const fields = Array.from(document.querySelectorAll<HTMLTextAreaElement>(RESULT_FIELD_SELECTOR));
-  const index = fields.indexOf(current);
-  if (index < 0 || index >= fields.length - 1) {
-    return;
-  }
-  const next = fields[index + 1];
-  next.focus();
-  const len = next.value.length;
-  next.setSelectionRange(len, len);
-}
-
 function LabResultEntryGrid({
   rows,
   editable,
   values,
   onValueChange,
+  onLastResultFieldEnter,
 }: {
   rows: ResultGridRow[];
   editable: boolean;
   values: Record<string, string>;
   onValueChange?: (resultKey: string, value: string) => void;
+  onLastResultFieldEnter?: () => void;
 }) {
+  const handleResultEnterKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey) {
+      return;
+    }
+    event.preventDefault();
+    focusNextLabResultField(event.target as HTMLTextAreaElement, onLastResultFieldEnter);
+  };
   const resultInput = (row: ResultGridRow, placeholder?: string) => {
     const value = values[row.resultKey] ?? '';
     const abnormal =
@@ -74,13 +70,7 @@ function LabResultEntryGrid({
           onChange={(e) => onValueChange?.(row.resultKey, e.target.value)}
           size="small"
           autoSize={{ minRows: 1, maxRows: 6 }}
-          onKeyDown={(e) => {
-            if (e.key !== 'Enter' || e.shiftKey) {
-              return;
-            }
-            e.preventDefault();
-            focusNextResultField(e.currentTarget);
-          }}
+          onKeyDown={handleResultEnterKey}
         />
         {abnormal ? (
           <Typography.Text type="warning" className="lab-result-abnormal-hint">
@@ -222,6 +212,7 @@ export function LabTestResultEntryPreview({
   editable = false,
   values = {},
   onValueChange,
+  onLastResultFieldEnter,
 }: {
   layout?: LabResultEntryLayout | null;
   testCategory: LabTestCategory;
@@ -233,6 +224,7 @@ export function LabTestResultEntryPreview({
   editable?: boolean;
   values?: Record<string, string>;
   onValueChange?: (resultKey: string, value: string) => void;
+  onLastResultFieldEnter?: () => void;
 }) {
   const spec = resolveResultEntryLayout(
     layout,
@@ -280,6 +272,7 @@ export function LabTestResultEntryPreview({
           editable={editable}
           values={values}
           onValueChange={onValueChange}
+          onLastResultFieldEnter={onLastResultFieldEnter}
         />
       </div>
     </div>

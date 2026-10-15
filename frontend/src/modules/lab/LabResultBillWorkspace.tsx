@@ -33,6 +33,8 @@ import {
   workItemOrderPayload,
   workItemsInOrder,
 } from './labResultWorkOrder';
+import { focusFirstLabResultFieldWhenReady } from './labResultFieldFocus';
+import { LabResultSaveConfirmModal } from './LabResultSaveConfirmModal';
 
 type LabResultBillWorkspaceProps = {
   billId: number | null;
@@ -68,6 +70,8 @@ export function LabResultBillWorkspace({
   const [visitContext, setVisitContext] = useState<BillVisitContextState>(() => defaultBillVisitContext());
   const [resultValues, setResultValues] = useState<Record<string, string>>({});
   const [workItemOrderKeys, setWorkItemOrderKeys] = useState<string[]>([]);
+  const [focusResultsToken, setFocusResultsToken] = useState(0);
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
 
   const detailQuery = useQuery({
     queryKey: ['lab', 'result-bill', billId],
@@ -103,8 +107,19 @@ export function LabResultBillWorkspace({
       setWorkItemOrderKeys(orderKeys);
       savedSnapshotRef.current = snapshot(ctx, values, orderKeys);
       onDirtyChangeRef.current?.(false);
+      setFocusResultsToken((token) => token + 1);
     }
   }, [detailQuery.data, billId]);
+
+  useEffect(() => {
+    if (focusResultsToken === 0) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      focusFirstLabResultFieldWhenReady();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [focusResultsToken, billId]);
 
   const markDirtyIfNeeded = (
     nextCtx: BillVisitContextState,
@@ -192,6 +207,11 @@ export function LabResultBillWorkspace({
         bill={bill}
         workItems={orderedWorkItems}
         resultValues={resultValues}
+        onLastResultFieldEnter={() => {
+          if (!saveResultsMutation.isPending) {
+            setSaveConfirmOpen(true);
+          }
+        }}
         onResultValueChange={(billLineId, labTestId, resultKey, value) => {
           setResultValues((prev) => {
             const next = {
@@ -217,6 +237,16 @@ export function LabResultBillWorkspace({
           Save result
         </Button>
       </div>
+      <LabResultSaveConfirmModal
+        open={saveConfirmOpen}
+        saving={saveResultsMutation.isPending}
+        onCancel={() => setSaveConfirmOpen(false)}
+        onConfirm={() => {
+          saveResultsMutation.mutate(undefined, {
+            onSuccess: () => setSaveConfirmOpen(false),
+          });
+        }}
+      />
     </>
   );
 }
@@ -227,6 +257,7 @@ function LabResultBillDetailPanel({
   resultValues,
   onResultValueChange,
   onWorkItemOrderChange,
+  onLastResultFieldEnter,
 }: {
   bill: LabResultBillDetail;
   workItems: LabResultWorkItem[];
@@ -238,6 +269,7 @@ function LabResultBillDetailPanel({
     value: string,
   ) => void;
   onWorkItemOrderChange: (orderKeys: string[]) => void;
+  onLastResultFieldEnter?: () => void;
 }) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const orderKeys = workItems.map(workItemOrderKey);
@@ -369,6 +401,7 @@ function LabResultBillDetailPanel({
                   onValueChange={(resultKey, value) =>
                     onResultValueChange(item.bill_line_id, item.lab_test_id, resultKey, value)
                   }
+                  onLastResultFieldEnter={onLastResultFieldEnter}
                 />
               )}
             </div>
