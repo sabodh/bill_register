@@ -846,6 +846,83 @@ body {
   padding: 0.5rem 0.85rem 0.45rem;
 }
 
+.lab-results-reorder-hint {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 12px;
+}
+
+.lab-test-full-form-card--reorderable {
+  position: relative;
+}
+
+.lab-test-full-form-card--drag-over {
+  outline: 1px dashed var(--ant-color-primary, #1677ff);
+  outline-offset: 2px;
+}
+
+.lab-results-test-top-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+  min-height: 1.5rem;
+}
+
+.lab-results-test-reorder-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.lab-results-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-right: 0.15rem;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+  cursor: grab;
+  border-radius: 4px;
+}
+
+.lab-results-drag-handle:active {
+  cursor: grabbing;
+}
+
+.lab-results-interpretations-link--filled {
+  font-weight: 600;
+}
+
+.lab-result-notes-modal-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 12px;
+}
+
+.lab-result-notes-modal-hint {
+  margin-bottom: 0.5rem !important;
+  font-size: 12px;
+}
+
+.lab-result-notes-modal-master {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  border-radius: 6px;
+}
+
+.lab-result-notes-modal-master-list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.15rem;
+}
+
+.lab-result-notes-modal-master-list li {
+  margin-bottom: 0.25rem;
+}
+
 .lab-results-visit-context {
   margin-top: 0.75rem;
 }

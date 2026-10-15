@@ -360,6 +360,8 @@ export interface LabResultWorkItem {
   from_package: boolean;
   package_name: string | null;
   result_entry_layout: LabResultEntryLayout;
+  /** Master test interpretation notes (read-only reference for this result). */
+  default_notes: string[];
 }
 
 export interface LabResultBillDetail {

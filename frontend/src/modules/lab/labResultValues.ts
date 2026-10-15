@@ -1,11 +1,18 @@
 import type { LabResultBillDetail, LabResultWorkItem, LabSavedResult } from '../../api/types/models';
 
+/** Stored on the bill line; does not update the lab test master. */
+export const LAB_RESULT_NOTE_KEY = 'note';
+
 export function resultValueKey(
   billLineId: number,
   labTestId: number,
   resultKey: string,
 ): string {
   return `${billLineId}:${labTestId}:${resultKey}`;
+}
+
+export function resultNoteValueKey(billLineId: number, labTestId: number): string {
+  return resultValueKey(billLineId, labTestId, LAB_RESULT_NOTE_KEY);
 }
 
 export function savedResultsToMap(saved: LabSavedResult[]): Record<string, string> {
@@ -26,9 +33,7 @@ export function collectResultPayload(
   const entries: LabSavedResult[] = [];
   for (const item of workItems) {
     const layout = item.result_entry_layout;
-    if (layout.layout === 'billing_only') {
-      continue;
-    }
+    if (layout.layout !== 'billing_only') {
     if (layout.layout === 'single' || layout.layout === 'multi_reference') {
       entries.push({
         bill_line_id: item.bill_line_id,
@@ -48,6 +53,13 @@ export function collectResultPayload(
         });
       }
     }
+    }
+    entries.push({
+      bill_line_id: item.bill_line_id,
+      lab_test_id: item.lab_test_id,
+      result_key: LAB_RESULT_NOTE_KEY,
+      value: values[resultNoteValueKey(item.bill_line_id, item.lab_test_id)] ?? '',
+    });
   }
   return entries;
 }

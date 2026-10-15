@@ -131,6 +131,11 @@ class Bill(BranchScopedModel):
     )
     payment_transaction_id = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
+    lab_result_work_order = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Ordered {bill_line_id, lab_test_id} pairs for lab result entry display.",
+    )
 
     class Meta:
         ordering = ["-created_at"]

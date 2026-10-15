@@ -20,6 +20,7 @@ class LabResultWorkItem:
     from_package: bool
     package_name: str | None
     result_entry_layout: dict
+    default_notes: list[str]
 
     def to_dict(self) -> dict:
         return {
@@ -34,6 +35,7 @@ class LabResultWorkItem:
             "from_package": self.from_package,
             "package_name": self.package_name,
             "result_entry_layout": self.result_entry_layout,
+            "default_notes": self.default_notes,
         }
 
 
@@ -69,6 +71,15 @@ def _package_from_billing_item(item: BillingItem | None) -> LabPackage | None:
     return None
 
 
+def _default_notes_for_test(test: LabTest) -> list[str]:
+    notes: list[str] = []
+    for row in test.interpretations.all():
+        text = (row.note or "").strip()
+        if text:
+            notes.append(text)
+    return notes
+
+
 def _work_item_for_test(
     line: BillLine,
     test: LabTest,
@@ -91,13 +102,62 @@ def _work_item_for_test(
         from_package=from_package,
         package_name=package_name,
         result_entry_layout=build_result_entry_layout(test),
+        default_notes=_default_notes_for_test(test),
     )
 
 
-def build_lab_result_work_items(bill: Bill) -> list[LabResultWorkItem]:
+def _work_item_pair(item: LabResultWorkItem) -> tuple[int, int]:
+    return (item.bill_line_id, item.lab_test_id)
+
+
+def apply_work_item_order(
+    items: list[LabResultWorkItem],
+    order: list | None,
+) -> list[LabResultWorkItem]:
+    if not order:
+        return items
+    key_to_item = {_work_item_pair(item): item for item in items}
+    ordered: list[LabResultWorkItem] = []
+    seen: set[tuple[int, int]] = set()
+    for entry in order:
+        if not isinstance(entry, dict):
+            continue
+        bill_line_id = entry.get("bill_line_id")
+        lab_test_id = entry.get("lab_test_id")
+        if bill_line_id is None or lab_test_id is None:
+            continue
+        key = (int(bill_line_id), int(lab_test_id))
+        item = key_to_item.get(key)
+        if item is not None and key not in seen:
+            ordered.append(item)
+            seen.add(key)
+    for item in items:
+        key = _work_item_pair(item)
+        if key not in seen:
+            ordered.append(item)
+    return ordered
+
+
+def normalize_work_item_order(
+    items: list[LabResultWorkItem],
+    order: list | None,
+) -> list[dict]:
+    applied = apply_work_item_order(items, order)
+    return [
+        {"bill_line_id": item.bill_line_id, "lab_test_id": item.lab_test_id}
+        for item in applied
+    ]
+
+
+def build_lab_result_work_items_unordered(bill: Bill) -> list[LabResultWorkItem]:
     lines = (
         bill.lines.select_related("lab_test", "lab_test__department", "lab_package", "billing_item")
-        .prefetch_related("lab_package__items__test", "lab_package__items__test__department")
+        .prefetch_related(
+            "lab_package__items__test",
+            "lab_package__items__test__department",
+            "lab_package__items__test__interpretations",
+            "lab_test__interpretations",
+        )
         .order_by("sort_order", "id")
     )
     items: list[LabResultWorkItem] = []
@@ -149,6 +209,11 @@ def build_lab_result_work_items(bill: Bill) -> list[LabResultWorkItem]:
                     )
 
     return items
+
+
+def build_lab_result_work_items(bill: Bill) -> list[LabResultWorkItem]:
+    items = build_lab_result_work_items_unordered(bill)
+    return apply_work_item_order(items, bill.lab_result_work_order)
 
 
 def lab_result_bills_base_queryset():

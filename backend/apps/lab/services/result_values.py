@@ -5,6 +5,9 @@ from django.db import transaction
 from apps.billing.models import Bill, BillLine, BillStatus
 from apps.lab.models import LabBillLineResult
 
+# Per-bill result note for a work item (not counted toward result completion).
+WORK_ITEM_RESULT_NOTE_KEY = "note"
+
 
 def storage_result_key(lab_test_id: int, result_key: str) -> str:
     return f"t{lab_test_id}:{result_key}"

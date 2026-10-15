@@ -6,7 +6,11 @@ from apps.billing.serializers import BillLabSessionSerializer
 from apps.core.models import Branch, Doctor
 from apps.lab.services.result_completion import bill_result_completion_summary
 from apps.lab.services.result_values import saved_results_for_bill, upsert_lab_bill_line_results
-from apps.lab.services.result_worklist import build_lab_result_work_items
+from apps.lab.services.result_worklist import (
+    build_lab_result_work_items,
+    build_lab_result_work_items_unordered,
+    normalize_work_item_order,
+)
 
 
 class LabResultPatientSerializer(serializers.Serializer):
@@ -85,6 +89,11 @@ class NullablePKIntegerField(serializers.IntegerField):
         return super().to_internal_value(data)
 
 
+class LabResultWorkItemOrderEntrySerializer(serializers.Serializer):
+    bill_line_id = serializers.IntegerField()
+    lab_test_id = serializers.IntegerField()
+
+
 class LabResultValueSerializer(serializers.Serializer):
     bill_line_id = serializers.IntegerField()
     lab_test_id = serializers.IntegerField()
@@ -100,6 +109,7 @@ class LabResultSaveSerializer(serializers.Serializer):
     sample_collected_at = serializers.DateTimeField(required=False, allow_null=True)
     sample_tested_at = serializers.DateTimeField(required=False, allow_null=True)
     results = LabResultValueSerializer(many=True, required=False, allow_null=True, default=list)
+    work_item_order = LabResultWorkItemOrderEntrySerializer(many=True, required=False)
 
     def validate(self, attrs):
         doctor_id = attrs.get("doctor")
@@ -146,6 +156,15 @@ class LabResultSaveSerializer(serializers.Serializer):
                 )
             except ValueError as exc:
                 raise serializers.ValidationError(str(exc)) from exc
+
+        if "work_item_order" in self.validated_data:
+            base_items = build_lab_result_work_items_unordered(bill)
+            bill.lab_result_work_order = normalize_work_item_order(
+                base_items,
+                self.validated_data["work_item_order"],
+            )
+            bill.save(update_fields=["lab_result_work_order"])
+
         return bill
 
 
