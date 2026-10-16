@@ -3,13 +3,16 @@ import { Button, Card, Modal, Tabs, Typography } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { apiClient } from '../../api/client';
-import type { LabResultBillSummary, Paginated, Patient } from '../../api/types/models';
+import type { LabResultBillDetail, LabResultBillSummary, Paginated, Patient } from '../../api/types/models';
 import { PatientSessionLookup } from '../../components/PatientSessionLookup';
 import { PageHeader } from '../../components/PageHeader';
+import { apiClient } from '../../api/client';
 import { BillPdfPreviewModal } from '../billing/pdf/BillPdfPreviewModal';
 import type { BillPdfSnapshot } from '../billing/pdf/billPdfTypes';
 import { LabResultBillWorkspace } from './LabResultBillWorkspace';
+import { LabResultPdfPreviewModal } from './pdf/LabResultPdfPreviewModal';
+import { labResultPdfSnapshotFromBill } from './pdf/labResultPdfSnapshot';
+import type { LabResultPdfSnapshot } from './pdf/labResultPdfTypes';
 import { RecentLabBillsSidebar } from './RecentLabBillsSidebar';
 
 type ResultTab = {
@@ -62,12 +65,24 @@ export function LabResultsPage() {
   const [selectedRecentBillId, setSelectedRecentBillId] = useState<number | null>(null);
   const [pdfPreviewSnapshot, setPdfPreviewSnapshot] = useState<BillPdfSnapshot | null>(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [resultPdfSnapshot, setResultPdfSnapshot] = useState<LabResultPdfSnapshot | null>(null);
+  const [resultPdfOpen, setResultPdfOpen] = useState(false);
   const patientBillLoadRef = useRef(0);
 
   const openBillPdfPreview = useCallback((snapshot: BillPdfSnapshot) => {
     setPdfPreviewSnapshot(snapshot);
     setPdfPreviewOpen(true);
   }, []);
+
+  const openResultPdfPreview = useCallback((snapshot: LabResultPdfSnapshot) => {
+    setResultPdfSnapshot(snapshot);
+    setResultPdfOpen(true);
+  }, []);
+
+  const openResultPdfForBillId = useCallback(async (billId: number) => {
+    const { data } = await apiClient.get<LabResultBillDetail>(`/lab/result-bills/${billId}/`);
+    openResultPdfPreview(labResultPdfSnapshotFromBill(data));
+  }, [openResultPdfPreview]);
 
   const activeTab = tabs.find((t) => t.key === activeKey);
   const activeBillId = activeTab?.billId ?? null;
@@ -245,6 +260,14 @@ export function LabResultsPage() {
           setPdfPreviewSnapshot(null);
         }}
       />
+      <LabResultPdfPreviewModal
+        open={resultPdfOpen}
+        snapshot={resultPdfSnapshot}
+        onClose={() => {
+          setResultPdfOpen(false);
+          setResultPdfSnapshot(null);
+        }}
+      />
       <PageHeader
         title="Lab results"
         subtitle="Open bills in tabs; use + for another bill. Save each tab before closing."
@@ -282,6 +305,7 @@ export function LabResultsPage() {
                   <div key={tab.key} className="billing-tab-panel" hidden={tab.key !== activeKey}>
                     <LabResultBillWorkspace
                       billId={tab.billId}
+                      onPreviewResultReport={openResultPdfPreview}
                       onDirtyChange={(dirty) => {
                         setTabs((prev) =>
                           prev.map((t) => {
@@ -333,6 +357,7 @@ export function LabResultsPage() {
           onEditBill={handleOpenBill}
           onBillCancelled={handleBillCancelled}
           onPreviewBillPdf={openBillPdfPreview}
+          onPreviewResultPdf={(id) => void openResultPdfForBillId(id)}
           resultWorklistTabs
           emptyDescription="No lab bills for this patient — save one under Lab → Billing."
           selectPatientHint="Select a patient on the left to load their bills."

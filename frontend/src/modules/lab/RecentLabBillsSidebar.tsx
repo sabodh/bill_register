@@ -32,6 +32,7 @@ type RecentLabBillsSidebarProps = {
   onEditBill?: (billId: number) => void;
   onBillCancelled?: (billId: number) => void;
   onPreviewBillPdf?: (snapshot: BillPdfSnapshot) => void;
+  onPreviewResultPdf?: (billId: number) => void;
   emptyDescription: string;
   selectPatientHint?: string;
   /** Lab results page: Pending vs Completed worklists + status tags on cards */
@@ -45,6 +46,7 @@ function LabResultBillCard({
   onEditBill,
   onBillCancelled,
   onPreviewBillPdf,
+  onPreviewResultPdf,
   showResultStatus,
 }: {
   bill: LabResultBillSummary;
@@ -53,6 +55,7 @@ function LabResultBillCard({
   onEditBill?: (billId: number) => void;
   onBillCancelled?: (billId: number) => void;
   onPreviewBillPdf?: (snapshot: BillPdfSnapshot) => void;
+  onPreviewResultPdf?: (billId: number) => void;
   showResultStatus: boolean;
 }) {
   const balanceDue = billBalanceDue(bill);
@@ -94,6 +97,8 @@ function LabResultBillCard({
             onEdit={onEditBill}
             onCancelled={onBillCancelled}
             onPreviewPdf={onPreviewBillPdf}
+            onPreviewResultPdf={onPreviewResultPdf}
+            showResultReportPdf={showResultStatus}
           />
         </div>
       </div>
@@ -144,6 +149,7 @@ export function RecentLabBillsSidebar({
   onEditBill,
   onBillCancelled,
   onPreviewBillPdf,
+  onPreviewResultPdf,
   emptyDescription,
   selectPatientHint = 'Select a patient to load their bills.',
   resultWorklistTabs = false,
@@ -241,6 +247,7 @@ export function RecentLabBillsSidebar({
               onEditBill={onEditBill}
               onBillCancelled={onBillCancelled}
               onPreviewBillPdf={onPreviewBillPdf}
+              onPreviewResultPdf={onPreviewResultPdf}
               showResultStatus={resultWorklistTabs}
             />
           ))}

@@ -34,12 +34,15 @@ import {
   workItemsInOrder,
 } from './labResultWorkOrder';
 import { focusFirstLabResultFieldWhenReady } from './labResultFieldFocus';
+import { labResultPdfSnapshotFromBill } from './pdf/labResultPdfSnapshot';
+import type { LabResultPdfSnapshot } from './pdf/labResultPdfTypes';
 import { LabResultSaveConfirmModal } from './LabResultSaveConfirmModal';
 
 type LabResultBillWorkspaceProps = {
   billId: number | null;
   onDirtyChange?: (dirty: boolean) => void;
   onBillNumberChange?: (billNumber: string) => void;
+  onPreviewResultReport?: (snapshot: LabResultPdfSnapshot) => void;
 };
 
 function snapshot(
@@ -58,14 +61,17 @@ export function LabResultBillWorkspace({
   billId,
   onDirtyChange,
   onBillNumberChange,
+  onPreviewResultReport,
 }: LabResultBillWorkspaceProps) {
   const queryClient = useQueryClient();
   const savedSnapshotRef = useRef<string>('');
   const hydratedBillId = useRef<number | null>(null);
   const onDirtyChangeRef = useRef(onDirtyChange);
   const onBillNumberChangeRef = useRef(onBillNumberChange);
+  const onPreviewResultReportRef = useRef(onPreviewResultReport);
   onDirtyChangeRef.current = onDirtyChange;
   onBillNumberChangeRef.current = onBillNumberChange;
+  onPreviewResultReportRef.current = onPreviewResultReport;
 
   const [visitContext, setVisitContext] = useState<BillVisitContextState>(() => defaultBillVisitContext());
   const [resultValues, setResultValues] = useState<Record<string, string>>({});
@@ -167,6 +173,7 @@ export function LabResultBillWorkspace({
       onDirtyChange?.(false);
       void queryClient.setQueryData(['lab', 'result-bill', data.id], data);
       void queryClient.invalidateQueries({ queryKey: ['lab', 'result-bills'] });
+      onPreviewResultReportRef.current?.(labResultPdfSnapshotFromBill(data));
     },
     onError: (error) => message.error(apiErrorMessage(error, 'Could not save results')),
   });

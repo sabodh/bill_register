@@ -26,6 +26,8 @@ type RecentBillCardActionsProps = {
   onCancelled?: (billId: number) => void;
   onPaymentCompleted?: (billId: number) => void;
   onPreviewPdf?: (snapshot: BillPdfSnapshot) => void;
+  onPreviewResultPdf?: (billId: number) => void;
+  showResultReportPdf?: boolean;
 };
 
 export function RecentBillCardActions({
@@ -37,6 +39,8 @@ export function RecentBillCardActions({
   onCancelled,
   onPaymentCompleted,
   onPreviewPdf,
+  onPreviewResultPdf,
+  showResultReportPdf = false,
 }: RecentBillCardActionsProps) {
   const queryClient = useQueryClient();
   const paymentPending = balanceDue > 0;
@@ -113,6 +117,16 @@ export function RecentBillCardActions({
     });
   };
 
+  const resultPdfMutation = useMutation({
+    mutationFn: async () => {
+      if (!onPreviewResultPdf) {
+        throw new Error('unavailable');
+      }
+      onPreviewResultPdf(billId);
+    },
+    onError: () => message.error('Could not open result report'),
+  });
+
   const menuItems: MenuProps['items'] = [
     {
       key: 'preview-pdf',
@@ -120,6 +134,16 @@ export function RecentBillCardActions({
       icon: <FilePdfOutlined />,
       disabled: pdfMutation.isPending || !onPreviewPdf,
     },
+    ...(showResultReportPdf && onPreviewResultPdf
+      ? [
+          {
+            key: 'preview-result-pdf',
+            label: 'Preview result report',
+            icon: <FilePdfOutlined />,
+            disabled: resultPdfMutation.isPending,
+          },
+        ]
+      : []),
     ...(onEdit
       ? [
           {
@@ -152,6 +176,10 @@ export function RecentBillCardActions({
       pdfMutation.mutate();
       return;
     }
+    if (key === 'preview-result-pdf') {
+      resultPdfMutation.mutate();
+      return;
+    }
     if (key === 'edit' && onEdit) {
       onEdit(billId);
       return;
@@ -166,7 +194,10 @@ export function RecentBillCardActions({
   };
 
   const menuLoading =
-    pdfMutation.isPending || completePaymentMutation.isPending || cancelMutation.isPending;
+    pdfMutation.isPending ||
+    resultPdfMutation.isPending ||
+    completePaymentMutation.isPending ||
+    cancelMutation.isPending;
 
   return (
     <Dropdown

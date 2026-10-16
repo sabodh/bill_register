@@ -1058,6 +1058,8 @@ body {
   border-top: 1px solid var(--ant-color-border-secondary, #f0f0f0);
   display: flex;
   justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .lab-results-section-divider {
