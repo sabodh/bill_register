@@ -9,6 +9,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppShell } from './layout/AppShell';
 import { BillingPage } from './modules/billing/BillingPage';
 import { LabAllTestsPage } from './modules/lab/LabAllTestsPage';
+import { LabResultPrintFormatsPage } from './modules/lab/LabResultPrintFormatsPage';
 import { LabResultsPage } from './modules/lab/LabResultsPage';
 import { LabTestDepartmentWorkspacePage } from './modules/lab/LabTestDepartmentWorkspacePage';
 import { LabWorkspaceLayout } from './modules/lab/LabWorkspaceLayout';
@@ -56,6 +57,7 @@ export default function App() {
             <Route path="staff/:id" element={<StaffFormPage />} />
             <Route path="billing" element={<BillingPage />} />
             <Route path="lab/results" element={<LabResultsPage />} />
+            <Route path="lab/result-print-formats" element={<LabResultPrintFormatsPage />} />
             <Route path="lab/all-tests" element={<LabAllTestsPage />} />
             <Route element={<LabWorkspaceLayout />}>
               <Route path="lab/tests" element={<LabTestsWorkspacePage />} />

@@ -90,6 +90,12 @@ export const menuSections: MenuSectionConfig[] = [
         permission: 'lab.view_test',
       },
       {
+        key: 'lab-result-print-formats',
+        label: 'Result print formats',
+        path: '/lab/result-print-formats',
+        permission: 'lab.view_test',
+      },
+      {
         key: 'lab-tests',
         label: 'Test',
         path: '/lab/tests',

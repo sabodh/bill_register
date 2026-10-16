@@ -1,6 +1,8 @@
 import { pdf } from '@react-pdf/renderer';
 
+import { LabResultPanelReportPdfDocument } from './LabResultPanelReportPdfDocument';
 import { LabResultPdfDocument } from './LabResultPdfDocument';
+import type { LabResultPrintFormatTemplate } from './labResultPrintFormats';
 import {
   DEFAULT_LETTERHEAD_BAND_HEIGHT_PT,
   LETTERPAD_BAND_HEIGHT_PT,
@@ -18,6 +20,7 @@ function isBundledSampleLetterheadUrl(url: string): boolean {
 export async function createLabResultPdfBlobUrl(
   snapshot: LabResultPdfSnapshot,
   options?: LabResultPdfRenderOptions,
+  template: LabResultPrintFormatTemplate = 'standard',
 ): Promise<string> {
   const renderSnapshot = options ? labResultPdfSnapshotForRender(snapshot, options) : snapshot;
   const showLetterheadImage = options?.includeLetterhead ?? true;
@@ -47,14 +50,19 @@ export async function createLabResultPdfBlobUrl(
     }
   }
 
-  const blob = await pdf(
-    <LabResultPdfDocument
-      snapshot={renderSnapshot}
-      renderOptions={options}
-      letterheadImageSrc={letterheadImageSrc}
-      useBuiltInSampleLetterhead={useBuiltInSampleLetterhead}
-      letterheadBandHeightPt={letterheadBandHeightPt}
-    />,
-  ).toBlob();
+  const document =
+    template === 'panel-report' ? (
+      <LabResultPanelReportPdfDocument snapshot={renderSnapshot} renderOptions={options} />
+    ) : (
+      <LabResultPdfDocument
+        snapshot={renderSnapshot}
+        renderOptions={options}
+        letterheadImageSrc={letterheadImageSrc}
+        useBuiltInSampleLetterhead={useBuiltInSampleLetterhead}
+        letterheadBandHeightPt={letterheadBandHeightPt}
+      />
+    );
+
+  const blob = await pdf(document).toBlob();
   return URL.createObjectURL(blob);
 }

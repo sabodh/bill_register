@@ -6,8 +6,14 @@ import { usePdfPreviewRegeneration } from '../../../hooks/usePdfPreviewRegenerat
 import { createLabResultPdfBlobUrl } from './createLabResultPdfBlobUrl';
 import { downloadLabResultPdf, printLabResultPdf } from './downloadLabResultPdf';
 import { LabResultPdfOptionsBar } from './LabResultPdfOptionsBar';
+import { LabResultPrintFormatSelect } from './LabResultPrintFormatSelect';
 import {
-  DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS,
+  getLabResultPrintFormat,
+  getStoredLabResultPrintFormatId,
+  setStoredLabResultPrintFormatId,
+  type LabResultPrintFormatId,
+} from './labResultPrintFormats';
+import {
   labResultPdfOptionsKey,
   labResultPdfSnapshotForRender,
   type LabResultPdfRenderOptions,
@@ -26,8 +32,11 @@ export function LabResultPdfPreviewModal({
   onClose,
 }: LabResultPdfPreviewModalProps) {
   const [downloading, setDownloading] = useState(false);
+  const [formatId, setFormatId] = useState<LabResultPrintFormatId>(
+    getStoredLabResultPrintFormatId(),
+  );
   const [renderOptions, setRenderOptions] = useState<LabResultPdfRenderOptions>(
-    DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS,
+    () => getLabResultPrintFormat(getStoredLabResultPrintFormatId()).renderOptions,
   );
 
   const snapshotKey = snapshot
@@ -36,21 +45,30 @@ export function LabResultPdfPreviewModal({
 
   useEffect(() => {
     if (open) {
-      setRenderOptions(DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS);
+      const storedId = getStoredLabResultPrintFormatId();
+      setFormatId(storedId);
+      setRenderOptions(getLabResultPrintFormat(storedId).renderOptions);
     }
   }, [open, snapshotKey]);
 
+  const handleFormatChange = (nextFormatId: LabResultPrintFormatId) => {
+    setFormatId(nextFormatId);
+    setRenderOptions(getLabResultPrintFormat(nextFormatId).renderOptions);
+    setStoredLabResultPrintFormatId(nextFormatId);
+  };
+
   const regenerateKey = useMemo(
-    () => `${snapshotKey}:${labResultPdfOptionsKey(renderOptions)}`,
-    [snapshotKey, renderOptions],
+    () => `${snapshotKey}:${formatId}:${labResultPdfOptionsKey(renderOptions)}`,
+    [snapshotKey, formatId, renderOptions],
   );
 
   const generate = useCallback(() => {
     if (!snapshot) {
       return Promise.reject(new Error('No snapshot'));
     }
-    return createLabResultPdfBlobUrl(snapshot, renderOptions);
-  }, [snapshot, renderOptions]);
+    const format = getLabResultPrintFormat(formatId);
+    return createLabResultPdfBlobUrl(snapshot, renderOptions, format.template);
+  }, [snapshot, renderOptions, formatId]);
 
   const { previewUrl, loading, error } = usePdfPreviewRegeneration(
     open && snapshot != null,
@@ -70,7 +88,8 @@ export function LabResultPdfPreviewModal({
     }
     setDownloading(true);
     try {
-      await downloadLabResultPdf(snapshot, renderOptions);
+      const format = getLabResultPrintFormat(formatId);
+      await downloadLabResultPdf(snapshot, renderOptions, format.template);
     } finally {
       setDownloading(false);
     }
@@ -111,10 +130,13 @@ export function LabResultPdfPreviewModal({
       ]}
     >
       {snapshot ? (
-        <LabResultPdfOptionsBar
-          options={renderOptions}
-          onChange={(patch) => setRenderOptions((prev) => ({ ...prev, ...patch }))}
-        />
+        <>
+          <LabResultPrintFormatSelect value={formatId} onChange={handleFormatChange} />
+          <LabResultPdfOptionsBar
+            options={renderOptions}
+            onChange={(patch) => setRenderOptions((prev) => ({ ...prev, ...patch }))}
+          />
+        </>
       ) : null}
       <PdfPreviewFrame
         previewUrl={noTestsAfterFilter ? null : previewUrl}

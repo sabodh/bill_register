@@ -1,12 +1,14 @@
 import { createLabResultPdfBlobUrl } from './createLabResultPdfBlobUrl';
+import type { LabResultPrintFormatTemplate } from './labResultPrintFormats';
 import type { LabResultPdfRenderOptions } from './labResultPdfRender';
 import type { LabResultPdfSnapshot } from './labResultPdfTypes';
 
 export async function downloadLabResultPdf(
   snapshot: LabResultPdfSnapshot,
   options?: LabResultPdfRenderOptions,
+  template: LabResultPrintFormatTemplate = 'standard',
 ): Promise<void> {
-  const url = await createLabResultPdfBlobUrl(snapshot, options);
+  const url = await createLabResultPdfBlobUrl(snapshot, options, template);
   const link = document.createElement('a');
   link.href = url;
   link.download = `LabResult-${snapshot.bill_number}.pdf`;

@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
   resultsBlock: { marginTop: 4 },
   section: { marginTop: 12 },
   sectionFirst: { marginTop: 0 },
+  sectionFirstSpaced: { marginTop: 6 },
   sectionTitle: {
     fontFamily: 'Helvetica-Bold',
     fontSize: 11,
@@ -81,6 +82,21 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     textAlign: 'center',
   },
+  sectionTitlePlain: {
+    backgroundColor: 'transparent',
+    textAlign: 'center',
+    paddingVertical: 3,
+    marginBottom: 4,
+  },
+  sectionTitleSpacious: {
+    paddingVertical: 5,
+  },
+  headerPlain: {
+    borderBottomWidth: 0,
+  },
+  signOffPlain: {
+    borderTopWidth: 0,
+  },
   tableHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -89,6 +105,20 @@ const styles = StyleSheet.create({
     paddingTop: 2,
     paddingBottom: 2,
     marginBottom: 4,
+  },
+  tableHeaderSpacedBelow: {
+    marginBottom: 6,
+  },
+  tableHeaderTightBelow: {
+    marginBottom: 1,
+  },
+  sectionTitleTightTop: {
+    marginTop: 0,
+    paddingVertical: 3,
+  },
+  tableHeaderTopRule: {
+    borderTopWidth: 1,
+    borderTopColor: '#bfbfbf',
   },
   tableRow: {
     flexDirection: 'row',
@@ -294,9 +324,24 @@ function LetterheadBand({
   );
 }
 
-function ColumnHeader() {
+function ColumnHeader({
+  includeReportDividers,
+  includeSpaceBeforeDepartment,
+  tightDepartmentTopSpacing,
+}: {
+  includeReportDividers: boolean;
+  includeSpaceBeforeDepartment: boolean;
+  tightDepartmentTopSpacing: boolean;
+}) {
   return (
-    <View style={styles.tableHeader}>
+    <View
+      style={[
+        styles.tableHeader,
+        !includeReportDividers ? styles.tableHeaderTopRule : undefined,
+        includeSpaceBeforeDepartment ? styles.tableHeaderSpacedBelow : undefined,
+        tightDepartmentTopSpacing ? styles.tableHeaderTightBelow : undefined,
+      ]}
+    >
       <View style={styles.colName}>
         <Text style={styles.headerText}>Test name</Text>
       </View>
@@ -341,13 +386,21 @@ function MethodLine({ methodName }: { methodName: string }) {
   return <Text style={styles.methodText}>Method: {trimmed}</Text>;
 }
 
-function ResultRow({ row, showDivider = true }: { row: LabResultPdfRow; showDivider?: boolean }) {
+function ResultRow({
+  row,
+  showDivider = true,
+  includeReportDividers,
+}: {
+  row: LabResultPdfRow;
+  showDivider?: boolean;
+  includeReportDividers: boolean;
+}) {
   return (
     <View
       style={[
         styles.tableRow,
         styles.tableRowMain,
-        showDivider ? styles.tableRowDivider : undefined,
+        showDivider && includeReportDividers ? styles.tableRowDivider : undefined,
         { paddingBottom: 4 },
       ]}
     >
@@ -370,11 +423,13 @@ function TestBlock({
   isLastTest,
   includeMethodLines,
   includeInterpretation,
+  includeReportDividers,
 }: {
   test: LabResultPdfTest;
   isLastTest: boolean;
   includeMethodLines: boolean;
   includeInterpretation: boolean;
+  includeReportDividers: boolean;
 }) {
   return (
     <View style={styles.testBlock}>
@@ -389,12 +444,16 @@ function TestBlock({
               key={index}
               row={row}
               showDivider={!isLastTest || index < test.rows.length - 1}
+              includeReportDividers={includeReportDividers}
             />
           ))}
         </>
       ) : (
         test.rows.map((row, index) => (
-          <View key={index} style={isLastTest ? undefined : styles.testEntry}>
+          <View
+            key={index}
+            style={!isLastTest && includeReportDividers ? styles.testEntry : undefined}
+          >
             <View
               style={[
                 styles.tableRowMain,
@@ -452,13 +511,22 @@ export function LabResultPdfDocument({
           showImage={renderOptions.includeLetterhead}
           bandHeightPt={letterheadBandHeightPt}
         />
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            !renderOptions.includeReportDividers ? styles.headerPlain : undefined,
+          ]}
+        >
           <VisitDetailsBlock snapshot={snapshot} renderOptions={renderOptions} />
         </View>
 
         <View style={styles.resultsBlock}>
           {snapshot.sections.some((section) => section.tests.length > 0) ? (
-            <ColumnHeader />
+            <ColumnHeader
+              includeReportDividers={renderOptions.includeReportDividers}
+              includeSpaceBeforeDepartment={renderOptions.includeSpaceBeforeDepartment}
+              tightDepartmentTopSpacing={renderOptions.tightDepartmentTopSpacing}
+            />
           ) : null}
           {(() => {
             let testIndex = 0;
@@ -466,10 +534,28 @@ export function LabResultPdfDocument({
             return sectionsWithTests.map((section, sectionIndex) => (
                 <View
                   key={section.departmentName}
-                  style={[styles.section, sectionIndex === 0 ? styles.sectionFirst : undefined]}
+                  style={[
+                    styles.section,
+                    sectionIndex === 0
+                      ? renderOptions.includeSpaceBeforeDepartment
+                        ? styles.sectionFirstSpaced
+                        : styles.sectionFirst
+                      : undefined,
+                  ]}
                 >
                   {renderOptions.includeDepartmentHeadings ? (
-                    <Text style={styles.sectionTitle}>{section.departmentName}</Text>
+                    <Text
+                      style={[
+                        styles.sectionTitle,
+                        !renderOptions.departmentHeadingShaded ? styles.sectionTitlePlain : undefined,
+                        renderOptions.tightDepartmentTopSpacing ? styles.sectionTitleTightTop : undefined,
+                        renderOptions.spaciousDepartmentHeading
+                          ? styles.sectionTitleSpacious
+                          : undefined,
+                      ]}
+                    >
+                      {section.departmentName}
+                    </Text>
                   ) : null}
                   {section.tests.map((test) => {
                     const isLastTest = testIndex === orderedTests.length - 1;
@@ -481,6 +567,7 @@ export function LabResultPdfDocument({
                         isLastTest={isLastTest}
                         includeMethodLines={renderOptions.includeMethodLines}
                         includeInterpretation={renderOptions.includeInterpretation}
+                        includeReportDividers={renderOptions.includeReportDividers}
                       />
                     );
                   })}
@@ -490,7 +577,12 @@ export function LabResultPdfDocument({
         </View>
 
         {showSignOff ? (
-          <View style={styles.signOff}>
+          <View
+            style={[
+              styles.signOff,
+              !renderOptions.includeReportDividers ? styles.signOffPlain : undefined,
+            ]}
+          >
             {renderOptions.includeFooterDisclaimer ? (
               <Text style={styles.footerNote}>
                 Biological reference ranges are for clinical correlation only. This report was

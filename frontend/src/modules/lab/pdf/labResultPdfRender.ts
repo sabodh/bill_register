@@ -16,6 +16,16 @@ export type LabResultPdfRenderOptions = {
   /** Per-test “Note: …” interpretation lines. */
   includeInterpretation: boolean;
   includeFooterDisclaimer: boolean;
+  /** Horizontal rules between patient block, column header, and result rows. */
+  includeReportDividers: boolean;
+  /** Grey band behind department headings (standard template). */
+  departmentHeadingShaded: boolean;
+  /** Extra gap between the test-name header rule and the first department heading. */
+  includeSpaceBeforeDepartment: boolean;
+  /** Less space above department headings (pre-printed letterpad). */
+  tightDepartmentTopSpacing: boolean;
+  /** Standard A4 / letterpad (plain): comfortable top/bottom padding on department title text. */
+  spaciousDepartmentHeading: boolean;
 };
 
 export const DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS: LabResultPdfRenderOptions = {
@@ -29,6 +39,11 @@ export const DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS: LabResultPdfRenderOptions = 
   includePathologistDesignation: true,
   includeInterpretation: true,
   includeFooterDisclaimer: true,
+  includeReportDividers: true,
+  departmentHeadingShaded: true,
+  includeSpaceBeforeDepartment: false,
+  tightDepartmentTopSpacing: false,
+  spaciousDepartmentHeading: false,
 };
 
 function rowHasResult(row: LabResultPdfRow): boolean {
