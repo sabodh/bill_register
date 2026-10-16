@@ -7,12 +7,13 @@ import type { LabPackageRecord, LabTestRecord, Paginated } from '../../api/types
 import { PageHeader } from '../../components/PageHeader';
 import { ErrorBlock, LoadingBlock } from '../../components/QueryState';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
-import type { LabBrowseListMode } from './LabWorkspaceBrowsePanel';
+type AllTestsListMode = 'tests' | 'packages' | 'report-order';
 import { LabPackageCatalogCard } from './LabPackageCatalogCard';
+import { LabReportCatalogOrderPanel } from './LabReportCatalogOrderPanel';
 import { LabTestFullFormDisplay } from './LabTestFullFormDisplay';
 
 export function LabAllTestsPage() {
-  const [listMode, setListMode] = useState<LabBrowseListMode>('tests');
+  const [listMode, setListMode] = useState<AllTestsListMode>('tests');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -39,6 +40,9 @@ export function LabAllTestsPage() {
   });
 
   const renderList = () => {
+    if (listMode === 'report-order') {
+      return <LabReportCatalogOrderPanel />;
+    }
     if (listMode === 'tests') {
       if (testsQuery.isLoading) {
         return <LoadingBlock />;
@@ -82,7 +86,7 @@ export function LabAllTestsPage() {
     <>
       <PageHeader
         title="All tests"
-        subtitle="Full result-entry layout for every test and package in the catalog."
+        subtitle="Preview layouts, arrange departments and test order for patient reports, or browse packages."
         breadcrumbs={[{ title: 'Lab' }, { title: 'All tests' }]}
       />
       <Card className="billing-workspace-card" styles={{ body: { paddingTop: 12 } }}>
@@ -91,23 +95,26 @@ export function LabAllTestsPage() {
             <Segmented
               value={listMode}
               onChange={(value) => {
-                setListMode(value as LabBrowseListMode);
+                setListMode(value as AllTestsListMode);
                 setSearch('');
               }}
               options={[
                 { label: 'Tests', value: 'tests' },
+                { label: 'Report order', value: 'report-order' },
                 { label: 'Packages', value: 'packages' },
               ]}
             />
-            <Input
-              className="lab-all-tests-search"
-              placeholder={
-                listMode === 'tests' ? 'Search test name or code' : 'Search package name'
-              }
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              allowClear
-            />
+            {listMode !== 'report-order' ? (
+              <Input
+                className="lab-all-tests-search"
+                placeholder={
+                  listMode === 'tests' ? 'Search test name or code' : 'Search package name'
+                }
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                allowClear
+              />
+            ) : null}
           </div>
           {renderList()}
         </div>

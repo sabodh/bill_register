@@ -8,10 +8,14 @@ from apps.core.models.base import BranchScopedModel
 class TestDepartment(BranchScopedModel):
     name = models.CharField(max_length=120)
     code = models.CharField(max_length=32, blank=True, db_index=True)
+    sort_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Order of department sections on patient lab reports.",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["sort_order", "name"]
         constraints = [
             models.UniqueConstraint(
                 fields=["branch", "name"],
@@ -81,10 +85,14 @@ class LabTest(BranchScopedModel):
         decimal_places=2,
         default=Decimal("0.00"),
     )
+    sort_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Order of tests within a department on patient lab reports.",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["sort_order", "name"]
         verbose_name = "lab test"
         verbose_name_plural = "lab tests"
 

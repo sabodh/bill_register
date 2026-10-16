@@ -11,6 +11,7 @@ from apps.lab.models import (
     TestDepartment,
     TestType,
 )
+from apps.lab.services.catalog_report_order import save_catalog_report_order
 from apps.lab.services.result_template import build_result_entry_layout
 
 
@@ -21,6 +22,7 @@ class TestDepartmentSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "code",
+            "sort_order",
             "branch",
             "is_active",
             "created_at",
@@ -204,6 +206,7 @@ class LabTestSerializer(serializers.ModelSerializer):
             "test_category",
             "test_type",
             "default_rate",
+            "sort_order",
             "reference_ranges",
             "interpretations",
             "result_entry_layout",
@@ -242,3 +245,43 @@ class LabTestSerializer(serializers.ModelSerializer):
             _sync_interpretations(test, notes)
         sync_lab_test_billing_item(test)
         return test
+
+
+class CatalogReportOrderSerializer(serializers.Serializer):
+    department_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
+    test_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        branch_id = request.user.branch_id
+        if not branch_id:
+            raise serializers.ValidationError("Your user must be assigned to a branch.")
+        dept_ids = attrs.get("department_ids") or []
+        test_ids = attrs.get("test_ids") or []
+        if len(set(dept_ids)) != len(dept_ids):
+            raise serializers.ValidationError({"department_ids": "Duplicate department ids."})
+        if len(set(test_ids)) != len(test_ids):
+            raise serializers.ValidationError({"test_ids": "Duplicate test ids."})
+        if dept_ids:
+            found = TestDepartment.objects.filter(
+                pk__in=dept_ids, branch_id=branch_id, is_active=True
+            ).count()
+            if found != len(dept_ids):
+                raise serializers.ValidationError(
+                    {"department_ids": "One or more departments are invalid for your branch."}
+                )
+        if test_ids:
+            found = LabTest.objects.filter(pk__in=test_ids, branch_id=branch_id, is_active=True).count()
+            if found != len(test_ids):
+                raise serializers.ValidationError(
+                    {"test_ids": "One or more tests are invalid for your branch."}
+                )
+        return attrs
+
+    def save(self) -> None:
+        request = self.context["request"]
+        save_catalog_report_order(
+            branch_id=request.user.branch_id,
+            department_ids=self.validated_data.get("department_ids") or [],
+            test_ids=self.validated_data.get("test_ids") or [],
+        )

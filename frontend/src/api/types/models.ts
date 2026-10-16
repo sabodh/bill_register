@@ -64,6 +64,7 @@ export interface DepartmentRecord {
   id: number;
   name: string;
   code: string;
+  sort_order?: number;
   branch: number;
   is_active: boolean;
 }
@@ -184,6 +185,7 @@ export interface LabTestRecord {
   test_category: LabTestCategory;
   test_type: LabTestTypeTier;
   default_rate: string;
+  sort_order?: number;
   reference_ranges: LabTestReferenceRange[];
   interpretations: LabTestInterpretation[];
   result_entry_layout?: LabResultEntryLayout;

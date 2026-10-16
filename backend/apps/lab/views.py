@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import F, Q
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -21,6 +21,7 @@ from apps.lab.services.result_worklist import lab_result_bills_base_queryset
 from apps.lab.filters import LabPackageFilter, LabTestFilter, TestDepartmentFilter
 from apps.lab.models import LabPackage, LabTest, TestDepartment
 from apps.lab.serializers import (
+    CatalogReportOrderSerializer,
     LabPackageSerializer,
     LabPackageWriteSerializer,
     LabTestSerializer,
@@ -32,7 +33,7 @@ class TestDepartmentViewSet(CoreModelViewSet):
     serializer_class = TestDepartmentSerializer
     filterset_class = TestDepartmentFilter
     search_fields = ["name", "code"]
-    ordering_fields = ["name", "created_at"]
+    ordering_fields = ["name", "sort_order", "created_at"]
     permission_classes = [HasPerm(perms.LAB_VIEW_TEST)]
 
     def get_permissions(self):
@@ -41,8 +42,10 @@ class TestDepartmentViewSet(CoreModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        qs = TestDepartment.objects.select_related("branch", "created_by", "updated_by").filter(
-            is_active=True
+        qs = (
+            TestDepartment.objects.select_related("branch", "created_by", "updated_by")
+            .filter(is_active=True)
+            .order_by("sort_order", "name")
         )
         return self.get_branch_filtered_queryset(qs)
 
@@ -115,11 +118,17 @@ class LabTestViewSet(CoreModelViewSet):
         sync_lab_test_billing_item(instance)
     filterset_class = LabTestFilter
     search_fields = ["name", "code"]
-    ordering_fields = ["name", "created_at", "code"]
+    ordering_fields = ["name", "sort_order", "created_at", "code"]
     permission_classes = [HasPerm(perms.LAB_VIEW_TEST)]
 
     def get_permissions(self):
-        if self.action in ("create", "update", "partial_update", "destroy"):
+        if self.action in (
+            "create",
+            "update",
+            "partial_update",
+            "destroy",
+            "save_report_catalog_order",
+        ):
             return [HasAnyPerm(perms.LAB_ADD_ORDER, perms.LAB_VIEW_TEST)()]
         return super().get_permissions()
 
@@ -128,8 +137,16 @@ class LabTestViewSet(CoreModelViewSet):
             LabTest.objects.select_related("branch", "department", "created_by", "updated_by")
             .prefetch_related("reference_ranges", "interpretations")
             .filter(is_active=True)
+            .order_by(F("department__sort_order").asc(nulls_last=True), "sort_order", "name")
         )
         return self.get_branch_filtered_queryset(qs)
+
+    @action(detail=False, methods=["post"], url_path="save-report-catalog-order")
+    def save_report_catalog_order(self, request):
+        serializer = CatalogReportOrderSerializer(data=request.data, context=self.get_serializer_context())
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Report catalog order saved."})
 
 
 class LabResultBillViewSet(BranchFilterMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):

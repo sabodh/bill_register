@@ -138,6 +138,29 @@ def apply_work_item_order(
     return ordered
 
 
+def _catalog_sort_key_for_work_item(
+    item: LabResultWorkItem,
+    tests_by_id: dict[int, LabTest],
+) -> tuple[int, int, str]:
+    test = tests_by_id.get(item.lab_test_id)
+    dept_order = 1_000_000
+    test_order = 1_000_000
+    if test is not None:
+        test_order = test.sort_order
+        if test.department_id and test.department:
+            dept_order = test.department.sort_order
+    return (dept_order, test_order, item.test_name.lower())
+
+
+def sort_work_items_by_catalog(items: list[LabResultWorkItem]) -> list[LabResultWorkItem]:
+    if not items:
+        return items
+    test_ids = {item.lab_test_id for item in items}
+    tests = LabTest.objects.filter(id__in=test_ids).select_related("department")
+    tests_by_id = {test.id: test for test in tests}
+    return sorted(items, key=lambda item: _catalog_sort_key_for_work_item(item, tests_by_id))
+
+
 def normalize_work_item_order(
     items: list[LabResultWorkItem],
     order: list | None,
@@ -213,6 +236,7 @@ def build_lab_result_work_items_unordered(bill: Bill) -> list[LabResultWorkItem]
 
 def build_lab_result_work_items(bill: Bill) -> list[LabResultWorkItem]:
     items = build_lab_result_work_items_unordered(bill)
+    items = sort_work_items_by_catalog(items)
     return apply_work_item_order(items, bill.lab_result_work_order)
 
 
