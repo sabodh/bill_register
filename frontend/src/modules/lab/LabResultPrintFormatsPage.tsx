@@ -4,6 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 
 import { PageHeader } from '../../components/PageHeader';
 import { LabResultPrintFormatPreviewModal } from './pdf/LabResultPrintFormatPreviewModal';
+import { labResultPdfFontPresetLabel } from './pdf/labResultPdfFonts';
 import {
   getLabResultPrintFormat,
   getStoredLabResultPrintFormatId,
@@ -51,6 +52,12 @@ export function LabResultPrintFormatsPage() {
       key: 'description',
     },
     {
+      title: 'Font',
+      key: 'font',
+      width: 140,
+      render: (_, row) => labResultPdfFontPresetLabel(row.renderOptions.fontPreset),
+    },
+    {
       title: 'Default',
       key: 'default',
       width: 100,
@@ -86,9 +93,11 @@ export function LabResultPrintFormatsPage() {
       />
       <Card>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-          Choose the default layout used when you open the result report preview after saving.
-          Use <Typography.Text strong>Show preview</Typography.Text> to open a sample report for any
-          format. You can still change format and options in the preview dialog on the Result desk.
+          Use <Typography.Text strong>Set as default</Typography.Text> for which print format opens first
+          after save. Font, text size, layout checkboxes, and fine-tuned pt sizes are also remembered in
+          this browser and apply the next time you open any result preview. Use{' '}
+          <Typography.Text strong>Show preview</Typography.Text> to try a format before setting it as
+          default.
         </Typography.Paragraph>
         <Typography.Text>
           Current default: <Typography.Text strong>{defaultFormat.label}</Typography.Text>

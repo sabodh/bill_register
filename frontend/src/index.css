@@ -1945,6 +1945,38 @@ body {
   border-bottom: 1px solid #f0f0f0;
 }
 
+.bill-pdf-preview-modal .ant-modal-body {
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+.bill-pdf-preview-modal .bill-pdf-preview-body {
+  min-height: min(58vh, 560px);
+}
+
+.bill-pdf-preview-format-row--compact {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.bill-pdf-preview-typography {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.bill-pdf-preview-typography-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bill-pdf-preview-typography-field-label {
+  flex: 1 1 140px;
+  font-size: 12px;
+}
+
 .bill-pdf-preview-controls--grid .bill-pdf-preview-options-grid {
   flex: 1;
   min-width: 0;

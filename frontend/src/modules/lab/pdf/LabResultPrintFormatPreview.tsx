@@ -4,18 +4,27 @@ import { PdfPreviewFrame } from '../../../components/PdfPreviewFrame';
 import { createLabResultPdfBlobUrl } from './createLabResultPdfBlobUrl';
 import { LAB_RESULT_PRINT_FORMAT_SAMPLE_SNAPSHOT } from './labResultPrintFormatSampleSnapshot';
 import type { LabResultPrintFormat } from './labResultPrintFormats';
-import { labResultPdfOptionsKey } from './labResultPdfRender';
+import {
+  labResultPdfOptionsKey,
+  normalizeLabResultPdfRenderOptions,
+  type LabResultPdfRenderOptions,
+} from './labResultPdfRender';
 
 type LabResultPrintFormatPreviewProps = {
   format: LabResultPrintFormat;
+  renderOptions?: LabResultPdfRenderOptions;
 };
 
-export function LabResultPrintFormatPreview({ format }: LabResultPrintFormatPreviewProps) {
+export function LabResultPrintFormatPreview({
+  format,
+  renderOptions: renderOptionsProp,
+}: LabResultPrintFormatPreviewProps) {
+  const renderOptions = renderOptionsProp ?? normalizeLabResultPdfRenderOptions(format.renderOptions);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const optionsKey = labResultPdfOptionsKey(format.renderOptions);
+  const optionsKey = labResultPdfOptionsKey(renderOptions);
 
   useEffect(() => {
     let activeUrl: string | null = null;
@@ -27,7 +36,7 @@ export function LabResultPrintFormatPreview({ format }: LabResultPrintFormatPrev
 
     createLabResultPdfBlobUrl(
       LAB_RESULT_PRINT_FORMAT_SAMPLE_SNAPSHOT,
-      format.renderOptions,
+      renderOptions,
       format.template,
     )
       .then((url) => {

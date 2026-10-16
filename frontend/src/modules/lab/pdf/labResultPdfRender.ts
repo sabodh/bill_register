@@ -1,3 +1,8 @@
+import type { LabResultPdfFontPreset } from './labResultPdfFonts';
+import type {
+  LabResultPdfTypography,
+  LabResultPdfTypographySize,
+} from './labResultPdfTypography';
 import type { LabResultPdfRow, LabResultPdfSection, LabResultPdfSnapshot, LabResultPdfTest } from './labResultPdfTypes';
 
 /** Toggles for result report PDF preview, print, and download. */
@@ -26,6 +31,11 @@ export type LabResultPdfRenderOptions = {
   tightDepartmentTopSpacing: boolean;
   /** Standard A4 / letterpad (plain): comfortable top/bottom padding on department title text. */
   spaciousDepartmentHeading: boolean;
+  fontPreset: LabResultPdfFontPreset;
+  /** Scales all section font sizes for this report. */
+  typographySize: LabResultPdfTypographySize;
+  /** Optional absolute overrides (pt) per section; wins over overall scale. */
+  fontSizesPt?: Partial<LabResultPdfTypography>;
 };
 
 export const DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS: LabResultPdfRenderOptions = {
@@ -44,6 +54,8 @@ export const DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS: LabResultPdfRenderOptions = 
   includeSpaceBeforeDepartment: false,
   tightDepartmentTopSpacing: false,
   spaciousDepartmentHeading: false,
+  fontPreset: 'helvetica',
+  typographySize: 'normal',
 };
 
 function rowHasResult(row: LabResultPdfRow): boolean {
@@ -92,6 +104,22 @@ export function labResultPdfSnapshotForRender(
     ...snapshot,
     sections: filterSections(snapshot.sections, true),
   };
+}
+
+export function normalizeLabResultPdfRenderOptions(
+  options?: Partial<LabResultPdfRenderOptions>,
+): LabResultPdfRenderOptions {
+  const { fontSizesPt, ...rest } = options ?? {};
+  const merged: LabResultPdfRenderOptions = {
+    ...DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS,
+    ...rest,
+  };
+  if (fontSizesPt && Object.keys(fontSizesPt).length > 0) {
+    merged.fontSizesPt = { ...fontSizesPt };
+  } else {
+    delete merged.fontSizesPt;
+  }
+  return merged;
 }
 
 export function labResultPdfOptionsKey(options: LabResultPdfRenderOptions): string {

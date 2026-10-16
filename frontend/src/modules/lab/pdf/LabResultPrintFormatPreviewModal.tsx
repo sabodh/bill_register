@@ -1,7 +1,17 @@
 import { Button, Modal } from 'antd';
+import { useEffect, useState } from 'react';
 
+import { LabResultPdfOptionsBar } from './LabResultPdfOptionsBar';
 import { LabResultPrintFormatPreview } from './LabResultPrintFormatPreview';
 import type { LabResultPrintFormat } from './labResultPrintFormats';
+import {
+  labResultPdfRenderOptionsForFormat,
+  persistLabResultPdfPreferencesFromRenderOptions,
+} from './labResultPdfPreferences';
+import {
+  normalizeLabResultPdfRenderOptions,
+  type LabResultPdfRenderOptions,
+} from './labResultPdfRender';
 
 type LabResultPrintFormatPreviewModalProps = {
   open: boolean;
@@ -14,6 +24,24 @@ export function LabResultPrintFormatPreviewModal({
   format,
   onClose,
 }: LabResultPrintFormatPreviewModalProps) {
+  const [renderOptions, setRenderOptions] = useState<LabResultPdfRenderOptions>(() =>
+    format ? labResultPdfRenderOptionsForFormat(format.id) : normalizeLabResultPdfRenderOptions(),
+  );
+
+  useEffect(() => {
+    if (open && format) {
+      setRenderOptions(labResultPdfRenderOptionsForFormat(format.id));
+    }
+  }, [open, format?.id]);
+
+  const handleRenderOptionsChange = (patch: Partial<LabResultPdfRenderOptions>) => {
+    setRenderOptions((prev) => {
+      const next = normalizeLabResultPdfRenderOptions({ ...prev, ...patch });
+      persistLabResultPdfPreferencesFromRenderOptions(next);
+      return next;
+    });
+  };
+
   return (
     <Modal
       title={format ? `Sample preview — ${format.label}` : 'Sample preview'}
@@ -30,7 +58,16 @@ export function LabResultPrintFormatPreviewModal({
         </Button>,
       ]}
     >
-      {format ? <LabResultPrintFormatPreview format={format} /> : null}
+      {format ? (
+        <>
+          <LabResultPdfOptionsBar
+            template={format.template}
+            options={renderOptions}
+            onChange={handleRenderOptionsChange}
+          />
+          <LabResultPrintFormatPreview format={format} renderOptions={renderOptions} />
+        </>
+      ) : null}
     </Modal>
   );
 }

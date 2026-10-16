@@ -14,8 +14,13 @@ import {
   type LabResultPrintFormatId,
 } from './labResultPrintFormats';
 import {
+  labResultPdfRenderOptionsForFormat,
+  persistLabResultPdfPreferencesFromRenderOptions,
+} from './labResultPdfPreferences';
+import {
   labResultPdfOptionsKey,
   labResultPdfSnapshotForRender,
+  normalizeLabResultPdfRenderOptions,
   type LabResultPdfRenderOptions,
 } from './labResultPdfRender';
 import type { LabResultPdfSnapshot } from './labResultPdfTypes';
@@ -35,8 +40,8 @@ export function LabResultPdfPreviewModal({
   const [formatId, setFormatId] = useState<LabResultPrintFormatId>(
     getStoredLabResultPrintFormatId(),
   );
-  const [renderOptions, setRenderOptions] = useState<LabResultPdfRenderOptions>(
-    () => getLabResultPrintFormat(getStoredLabResultPrintFormatId()).renderOptions,
+  const [renderOptions, setRenderOptions] = useState<LabResultPdfRenderOptions>(() =>
+    labResultPdfRenderOptionsForFormat(getStoredLabResultPrintFormatId()),
   );
 
   const snapshotKey = snapshot
@@ -47,14 +52,22 @@ export function LabResultPdfPreviewModal({
     if (open) {
       const storedId = getStoredLabResultPrintFormatId();
       setFormatId(storedId);
-      setRenderOptions(getLabResultPrintFormat(storedId).renderOptions);
+      setRenderOptions(labResultPdfRenderOptionsForFormat(storedId));
     }
   }, [open, snapshotKey]);
 
   const handleFormatChange = (nextFormatId: LabResultPrintFormatId) => {
     setFormatId(nextFormatId);
-    setRenderOptions(getLabResultPrintFormat(nextFormatId).renderOptions);
+    setRenderOptions(labResultPdfRenderOptionsForFormat(nextFormatId));
     setStoredLabResultPrintFormatId(nextFormatId);
+  };
+
+  const handleRenderOptionsChange = (patch: Partial<LabResultPdfRenderOptions>) => {
+    setRenderOptions((prev) => {
+      const next = normalizeLabResultPdfRenderOptions({ ...prev, ...patch });
+      persistLabResultPdfPreferencesFromRenderOptions(next);
+      return next;
+    });
   };
 
   const regenerateKey = useMemo(
@@ -133,8 +146,9 @@ export function LabResultPdfPreviewModal({
         <>
           <LabResultPrintFormatSelect value={formatId} onChange={handleFormatChange} />
           <LabResultPdfOptionsBar
+            template={getLabResultPrintFormat(formatId).template}
             options={renderOptions}
-            onChange={(patch) => setRenderOptions((prev) => ({ ...prev, ...patch }))}
+            onChange={handleRenderOptionsChange}
           />
         </>
       ) : null}

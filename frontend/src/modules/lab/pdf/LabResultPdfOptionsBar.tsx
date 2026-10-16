@@ -1,15 +1,38 @@
 import { Checkbox, Col, Row, Typography } from 'antd';
 
+import { LabResultPdfFontSelect } from './LabResultPdfFontSelect';
+import { LabResultPdfTypographyControls } from './LabResultPdfTypographyControls';
+import type { LabResultPdfFontPreset } from './labResultPdfFonts';
+import type { LabResultPrintFormatTemplate } from './labResultPrintFormats';
 import type { LabResultPdfRenderOptions } from './labResultPdfRender';
 
 type LabResultPdfOptionsBarProps = {
   options: LabResultPdfRenderOptions;
   onChange: (patch: Partial<LabResultPdfRenderOptions>) => void;
+  template?: LabResultPrintFormatTemplate;
 };
 
-export function LabResultPdfOptionsBar({ options, onChange }: LabResultPdfOptionsBarProps) {
+export function LabResultPdfOptionsBar({
+  options,
+  onChange,
+  template = 'standard',
+}: LabResultPdfOptionsBarProps) {
+  const fontPreset = options.fontPreset ?? 'helvetica';
+  const typographySize = options.typographySize ?? 'normal';
+
   return (
-    <div className="bill-pdf-preview-controls bill-pdf-preview-controls--grid">
+    <>
+      <LabResultPdfFontSelect
+        value={fontPreset}
+        onChange={(preset: LabResultPdfFontPreset) => onChange({ fontPreset: preset })}
+      />
+      <LabResultPdfTypographyControls
+        template={template}
+        typographySize={typographySize}
+        fontSizesPt={options.fontSizesPt}
+        onChange={onChange}
+      />
+      <div className="bill-pdf-preview-controls bill-pdf-preview-controls--grid">
       <Typography.Text type="secondary" className="bill-pdf-preview-controls-label">
         Layout
       </Typography.Text>
@@ -88,5 +111,6 @@ export function LabResultPdfOptionsBar({ options, onChange }: LabResultPdfOption
         </Col>
       </Row>
     </div>
+    </>
   );
 }

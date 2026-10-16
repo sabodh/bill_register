@@ -9,8 +9,11 @@ import {
   letterheadBandHeightFromImagePx,
 } from './labResultLetterheadLayout';
 import { rasterDataUrlSize, resolveLetterheadImageForPdf } from './labResultLetterheadImage';
-import type { LabResultPdfRenderOptions } from './labResultPdfRender';
-import { labResultPdfSnapshotForRender } from './labResultPdfRender';
+import {
+  labResultPdfSnapshotForRender,
+  normalizeLabResultPdfRenderOptions,
+  type LabResultPdfRenderOptions,
+} from './labResultPdfRender';
 import type { LabResultPdfSnapshot } from './labResultPdfTypes';
 
 function isBundledSampleLetterheadUrl(url: string): boolean {
@@ -22,8 +25,9 @@ export async function createLabResultPdfBlobUrl(
   options?: LabResultPdfRenderOptions,
   template: LabResultPrintFormatTemplate = 'standard',
 ): Promise<string> {
-  const renderSnapshot = options ? labResultPdfSnapshotForRender(snapshot, options) : snapshot;
-  const showLetterheadImage = options?.includeLetterhead ?? true;
+  const renderOptions = normalizeLabResultPdfRenderOptions(options);
+  const renderSnapshot = labResultPdfSnapshotForRender(snapshot, renderOptions);
+  const showLetterheadImage = renderOptions.includeLetterhead;
 
   let letterheadImageSrc: string | null = null;
   let useBuiltInSampleLetterhead = false;
@@ -52,11 +56,11 @@ export async function createLabResultPdfBlobUrl(
 
   const document =
     template === 'panel-report' ? (
-      <LabResultPanelReportPdfDocument snapshot={renderSnapshot} renderOptions={options} />
+      <LabResultPanelReportPdfDocument snapshot={renderSnapshot} renderOptions={renderOptions} />
     ) : (
       <LabResultPdfDocument
         snapshot={renderSnapshot}
-        renderOptions={options}
+        renderOptions={renderOptions}
         letterheadImageSrc={letterheadImageSrc}
         useBuiltInSampleLetterhead={useBuiltInSampleLetterhead}
         letterheadBandHeightPt={letterheadBandHeightPt}

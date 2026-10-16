@@ -1,4 +1,4 @@
-import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Image, Page, Text, View } from '@react-pdf/renderer';
 
 import { formatBillPdfDateTime } from '../../billing/pdf/billPdfFormat';
 import {
@@ -16,6 +16,13 @@ import type {
 } from './labResultPdfTypes';
 
 import { LETTERPAD_BAND_HEIGHT_PT } from './labResultLetterheadLayout';
+import {
+  createLabResultStandardPdfStyles,
+  type LabResultStandardPdfStyles,
+} from './labResultStandardPdfStyles';
+import { resolveLabResultPdfTypography } from './labResultPdfTypography';
+
+let pdfStyles: LabResultStandardPdfStyles;
 
 function testsInReportOrder(sections: LabResultPdfSection[]): LabResultPdfTest[] {
   const tests: LabResultPdfTest[] = [];
@@ -27,197 +34,10 @@ function testsInReportOrder(sections: LabResultPdfSection[]): LabResultPdfTest[]
   return tests;
 }
 
-const styles = StyleSheet.create({
-  page: {
-    paddingTop: 0,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    color: '#1a1a1a',
-  },
-  header: {
-    marginBottom: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: '#d9d9d9',
-    paddingBottom: 3,
-  },
-  visitBlock: {
-    fontSize: 9,
-  },
-  visitBlockAfterLetterhead: {
-    marginTop: 10,
-  },
-  visitRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 3,
-  },
-  visitCol: {
-    width: '50%',
-    paddingRight: 10,
-  },
-  visitColRight: {
-    width: '40%',
-    marginLeft: '10%',
-    paddingRight: 0,
-  },
-  visitLine: {
-    fontSize: 9,
-  },
-  visitLabel: {
-    fontFamily: 'Helvetica-Bold',
-    color: '#434343',
-  },
-  resultsBlock: { marginTop: 4 },
-  section: { marginTop: 12 },
-  sectionFirst: { marginTop: 0 },
-  sectionFirstSpaced: { marginTop: 6 },
-  sectionTitle: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 11,
-    marginBottom: 4,
-    color: '#262626',
-    backgroundColor: '#f5f5f5',
-    paddingVertical: 3,
-    textAlign: 'center',
-  },
-  sectionTitlePlain: {
-    backgroundColor: 'transparent',
-    textAlign: 'center',
-    paddingVertical: 3,
-    marginBottom: 4,
-  },
-  sectionTitleSpacious: {
-    paddingVertical: 5,
-  },
-  headerPlain: {
-    borderBottomWidth: 0,
-  },
-  signOffPlain: {
-    borderTopWidth: 0,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderBottomWidth: 1,
-    borderBottomColor: '#bfbfbf',
-    paddingTop: 2,
-    paddingBottom: 2,
-    marginBottom: 4,
-  },
-  tableHeaderSpacedBelow: {
-    marginBottom: 6,
-  },
-  tableHeaderTightBelow: {
-    marginBottom: 1,
-  },
-  sectionTitleTightTop: {
-    marginTop: 0,
-    paddingVertical: 3,
-  },
-  tableHeaderTopRule: {
-    borderTopWidth: 1,
-    borderTopColor: '#bfbfbf',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  tableRowDivider: {
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#d9d9d9',
-  },
-  tableRowMain: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingTop: 4,
-  },
-  tableRowMainWithMethod: {
-    paddingBottom: 2,
-  },
-  methodRow: {
-    flexDirection: 'row',
-    paddingTop: 0,
-    paddingBottom: 4,
-  },
-  testEntry: {
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#d9d9d9',
-  },
-  testBlock: { marginBottom: 10 },
-  colName: { width: '48%', paddingRight: 10 },
-  colResult: { width: '17%', paddingLeft: 14, paddingRight: 4 },
-  colResultValues: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  colRef: { width: '35%', textAlign: 'right', fontSize: 9, paddingTop: 0 },
-  headerText: { fontFamily: 'Helvetica-Bold', fontSize: 9, color: '#595959' },
-  headerRefText: { fontFamily: 'Helvetica-Bold', fontSize: 9, color: '#595959', textAlign: 'right' },
-  testName: { fontFamily: 'Helvetica-Bold', fontSize: 10 },
-  panelTitle: { fontFamily: 'Helvetica-Bold', fontSize: 10 },
-  subtestName: { paddingLeft: 14, fontSize: 10, fontFamily: 'Helvetica' },
-  resultValue: { fontFamily: 'Helvetica-Bold', fontSize: 10 },
-  unitText: { fontSize: 9, color: '#595959' },
-  methodText: {
-    fontSize: 9,
-    color: '#434343',
-    marginTop: 0,
-  },
-  testHeading: { paddingTop: 2, marginBottom: 4 },
-  interpretation: {
-    marginTop: 3,
-    marginBottom: 6,
-    paddingLeft: 4,
-    fontSize: 9,
-    color: '#434343',
-    fontStyle: 'italic',
-  },
-  signOff: {
-    marginTop: 24,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#d9d9d9',
-  },
-  signOffLine: { marginTop: 16, fontSize: 9 },
-  footerNote: { marginTop: 8, fontSize: 8, color: '#8c8c8c' },
-  letterheadBand: {
-    width: '100%',
-    marginBottom: 0,
-  },
-  letterheadImage: {
-    width: '100%',
-    objectFit: 'contain',
-    objectPosition: 'top center',
-  },
-  sampleLetterheadTitle: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 16,
-    color: '#1a365d',
-    textAlign: 'center',
-  },
-  sampleLetterheadSub: {
-    marginTop: 6,
-    fontSize: 9,
-    color: '#475569',
-    textAlign: 'center',
-  },
-  sampleLetterheadHint: {
-    marginTop: 10,
-    fontSize: 8,
-    color: '#94a3b8',
-    textAlign: 'center',
-  },
-  sampleLetterheadRule: {
-    marginTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#cbd5e1',
-    paddingTop: 8,
-  },
-});
-
 function VisitDetailLine({ label, value }: { label: string; value: string }) {
   return (
-    <Text style={styles.visitLine} wrap={false}>
-      <Text style={styles.visitLabel}>{label}</Text>
+    <Text style={pdfStyles.visitLine} wrap={false}>
+      <Text style={pdfStyles.visitLabel}>{label}</Text>
       {value}
     </Text>
   );
@@ -243,12 +63,12 @@ function VisitDetailsBlock({
   const showThirdRow = showHospital || showSample;
 
   return (
-    <View style={[styles.visitBlock, styles.visitBlockAfterLetterhead]}>
-      <View style={styles.visitRow}>
-        <View style={styles.visitCol}>
+    <View style={[pdfStyles.visitBlock, pdfStyles.visitBlockAfterLetterhead]}>
+      <View style={pdfStyles.visitRow}>
+        <View style={pdfStyles.visitCol}>
           <VisitDetailLine label="Patient name: " value={patientLine} />
         </View>
-        <View style={styles.visitColRight}>
+        <View style={pdfStyles.visitColRight}>
           {showSample ? (
             <VisitDetailLine
               label="Sample collected: "
@@ -259,11 +79,11 @@ function VisitDetailsBlock({
           )}
         </View>
       </View>
-      <View style={styles.visitRow}>
-        <View style={styles.visitCol}>
+      <View style={pdfStyles.visitRow}>
+        <View style={pdfStyles.visitCol}>
           <VisitDetailLine label="Ref.Doctor: " value={doctorLine} />
         </View>
-        <View style={styles.visitColRight}>
+        <View style={pdfStyles.visitColRight}>
           {showSample ? (
             <VisitDetailLine label="Report on: " value={reportOn} />
           ) : (
@@ -272,13 +92,13 @@ function VisitDetailsBlock({
         </View>
       </View>
       {showThirdRow ? (
-        <View style={styles.visitRow}>
-          <View style={styles.visitCol}>
+        <View style={pdfStyles.visitRow}>
+          <View style={pdfStyles.visitCol}>
             {showHospital ? (
               <VisitDetailLine label="Hospital: " value={snapshot.hospital_name.trim()} />
             ) : null}
           </View>
-          <View style={styles.visitColRight}>
+          <View style={pdfStyles.visitColRight}>
             {showSample ? <VisitDetailLine label="Bill no: " value={snapshot.bill_number} /> : null}
           </View>
         </View>
@@ -290,12 +110,12 @@ function VisitDetailsBlock({
 function BuiltInSampleLetterhead() {
   return (
     <View>
-      <Text style={styles.sampleLetterheadTitle}>Sample Hospital & Laboratory</Text>
-      <Text style={styles.sampleLetterheadSub}>
+      <Text style={pdfStyles.sampleLetterheadTitle}>Sample Hospital & Laboratory</Text>
+      <Text style={pdfStyles.sampleLetterheadSub}>
         123 Health Street · Sample City · +91 00000 00000
       </Text>
-      <View style={styles.sampleLetterheadRule}>
-        <Text style={styles.sampleLetterheadHint}>
+      <View style={pdfStyles.sampleLetterheadRule}>
+        <Text style={pdfStyles.sampleLetterheadHint}>
           Sample letterhead — replace via Branch → Report letterhead in admin
         </Text>
       </View>
@@ -315,9 +135,9 @@ function LetterheadBand({
   bandHeightPt: number;
 }) {
   return (
-    <View style={[styles.letterheadBand, { height: bandHeightPt }]}>
+    <View style={[pdfStyles.letterheadBand, { height: bandHeightPt }]}>
       {showImage && imageSrc ? (
-        <Image src={imageSrc} style={[styles.letterheadImage, { height: bandHeightPt }]} />
+        <Image src={imageSrc} style={[pdfStyles.letterheadImage, { height: bandHeightPt }]} />
       ) : null}
       {showImage && !imageSrc && useBuiltInSample ? <BuiltInSampleLetterhead /> : null}
     </View>
@@ -336,20 +156,20 @@ function ColumnHeader({
   return (
     <View
       style={[
-        styles.tableHeader,
-        !includeReportDividers ? styles.tableHeaderTopRule : undefined,
-        includeSpaceBeforeDepartment ? styles.tableHeaderSpacedBelow : undefined,
-        tightDepartmentTopSpacing ? styles.tableHeaderTightBelow : undefined,
+        pdfStyles.tableHeader,
+        !includeReportDividers ? pdfStyles.tableHeaderTopRule : undefined,
+        includeSpaceBeforeDepartment ? pdfStyles.tableHeaderSpacedBelow : undefined,
+        tightDepartmentTopSpacing ? pdfStyles.tableHeaderTightBelow : undefined,
       ]}
     >
-      <View style={styles.colName}>
-        <Text style={styles.headerText}>Test name</Text>
+      <View style={pdfStyles.colName}>
+        <Text style={pdfStyles.headerText}>Test name</Text>
       </View>
-      <View style={styles.colResult}>
-        <Text style={styles.headerText}>Result</Text>
+      <View style={pdfStyles.colResult}>
+        <Text style={pdfStyles.headerText}>Result</Text>
       </View>
-      <View style={styles.colRef}>
-        <Text style={styles.headerRefText}>Biological reference range</Text>
+      <View style={pdfStyles.colRef}>
+        <Text style={pdfStyles.headerRefText}>Biological reference range</Text>
       </View>
     </View>
   );
@@ -358,10 +178,10 @@ function ColumnHeader({
 function ResultUnitCell({ result, unit }: { result: string; unit: string }) {
   const display = result || '—';
   return (
-    <View style={styles.colResult}>
-      <View style={styles.colResultValues}>
-        <Text style={styles.resultValue}>{display}</Text>
-        {unit ? <Text style={styles.unitText}>{unit}</Text> : null}
+    <View style={pdfStyles.colResult}>
+      <View style={pdfStyles.colResultValues}>
+        <Text style={pdfStyles.resultValue}>{display}</Text>
+        {unit ? <Text style={pdfStyles.unitText}>{unit}</Text> : null}
       </View>
     </View>
   );
@@ -370,7 +190,7 @@ function ResultUnitCell({ result, unit }: { result: string; unit: string }) {
 function RefCell({ reference }: { reference: string }) {
   const lines = reference ? reference.split('\n') : ['—'];
   return (
-    <View style={styles.colRef}>
+    <View style={pdfStyles.colRef}>
       {lines.map((line, i) => (
         <Text key={i}>{line}</Text>
       ))}
@@ -383,7 +203,7 @@ function MethodLine({ methodName }: { methodName: string }) {
   if (!trimmed) {
     return null;
   }
-  return <Text style={styles.methodText}>Method: {trimmed}</Text>;
+  return <Text style={pdfStyles.methodText}>Method: {trimmed}</Text>;
 }
 
 function ResultRow({
@@ -398,16 +218,16 @@ function ResultRow({
   return (
     <View
       style={[
-        styles.tableRow,
-        styles.tableRowMain,
-        showDivider && includeReportDividers ? styles.tableRowDivider : undefined,
+        pdfStyles.tableRow,
+        pdfStyles.tableRowMain,
+        showDivider && includeReportDividers ? pdfStyles.tableRowDivider : undefined,
         { paddingBottom: 4 },
       ]}
     >
       <Text
         style={[
-          styles.colName,
-          row.isSubtest ? styles.subtestName : styles.testName,
+          pdfStyles.colName,
+          row.isSubtest ? pdfStyles.subtestName : pdfStyles.testName,
         ]}
       >
         {row.name}
@@ -432,11 +252,11 @@ function TestBlock({
   includeReportDividers: boolean;
 }) {
   return (
-    <View style={styles.testBlock}>
+    <View style={pdfStyles.testBlock}>
       {test.isPanel ? (
         <>
-          <View style={styles.testHeading}>
-            <Text style={styles.panelTitle}>{test.title}</Text>
+          <View style={pdfStyles.testHeading}>
+            <Text style={pdfStyles.panelTitle}>{test.title}</Text>
             {includeMethodLines ? <MethodLine methodName={test.methodName} /> : null}
           </View>
           {test.rows.map((row, index) => (
@@ -452,32 +272,32 @@ function TestBlock({
         test.rows.map((row, index) => (
           <View
             key={index}
-            style={!isLastTest && includeReportDividers ? styles.testEntry : undefined}
+            style={!isLastTest && includeReportDividers ? pdfStyles.testEntry : undefined}
           >
             <View
               style={[
-                styles.tableRowMain,
-                includeMethodLines ? styles.tableRowMainWithMethod : undefined,
+                pdfStyles.tableRowMain,
+                includeMethodLines ? pdfStyles.tableRowMainWithMethod : undefined,
               ]}
             >
-              <Text style={[styles.colName, styles.testName]}>{row.name}</Text>
+              <Text style={[pdfStyles.colName, pdfStyles.testName]}>{row.name}</Text>
               <ResultUnitCell result={row.result} unit={row.unit} />
               <RefCell reference={row.reference} />
             </View>
             {includeMethodLines ? (
-              <View style={styles.methodRow}>
-                <View style={styles.colName}>
+              <View style={pdfStyles.methodRow}>
+                <View style={pdfStyles.colName}>
                   <MethodLine methodName={test.methodName} />
                 </View>
-                <View style={styles.colResult} />
-                <View style={styles.colRef} />
+                <View style={pdfStyles.colResult} />
+                <View style={pdfStyles.colRef} />
               </View>
             ) : null}
           </View>
         ))
       )}
       {includeInterpretation && test.interpretation ? (
-        <Text style={styles.interpretation}>Note: {test.interpretation}</Text>
+        <Text style={pdfStyles.interpretation}>Note: {test.interpretation}</Text>
       ) : null}
     </View>
   );
@@ -496,6 +316,12 @@ export function LabResultPdfDocument({
   useBuiltInSampleLetterhead?: boolean;
   letterheadBandHeightPt?: number;
 }) {
+  const typography = resolveLabResultPdfTypography(
+    'standard',
+    renderOptions.typographySize,
+    renderOptions.fontSizesPt,
+  );
+  pdfStyles = createLabResultStandardPdfStyles(renderOptions.fontPreset, typography);
   const orderedTests = testsInReportOrder(snapshot.sections);
   const showSignOff =
     renderOptions.includeFooterDisclaimer ||
@@ -504,7 +330,7 @@ export function LabResultPdfDocument({
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={pdfStyles.page}>
         <LetterheadBand
           imageSrc={letterheadImageSrc}
           useBuiltInSample={useBuiltInSampleLetterhead}
@@ -513,14 +339,14 @@ export function LabResultPdfDocument({
         />
         <View
           style={[
-            styles.header,
-            !renderOptions.includeReportDividers ? styles.headerPlain : undefined,
+            pdfStyles.header,
+            !renderOptions.includeReportDividers ? pdfStyles.headerPlain : undefined,
           ]}
         >
           <VisitDetailsBlock snapshot={snapshot} renderOptions={renderOptions} />
         </View>
 
-        <View style={styles.resultsBlock}>
+        <View style={pdfStyles.resultsBlock}>
           {snapshot.sections.some((section) => section.tests.length > 0) ? (
             <ColumnHeader
               includeReportDividers={renderOptions.includeReportDividers}
@@ -535,22 +361,22 @@ export function LabResultPdfDocument({
                 <View
                   key={section.departmentName}
                   style={[
-                    styles.section,
+                    pdfStyles.section,
                     sectionIndex === 0
                       ? renderOptions.includeSpaceBeforeDepartment
-                        ? styles.sectionFirstSpaced
-                        : styles.sectionFirst
+                        ? pdfStyles.sectionFirstSpaced
+                        : pdfStyles.sectionFirst
                       : undefined,
                   ]}
                 >
                   {renderOptions.includeDepartmentHeadings ? (
                     <Text
                       style={[
-                        styles.sectionTitle,
-                        !renderOptions.departmentHeadingShaded ? styles.sectionTitlePlain : undefined,
-                        renderOptions.tightDepartmentTopSpacing ? styles.sectionTitleTightTop : undefined,
+                        pdfStyles.sectionTitle,
+                        !renderOptions.departmentHeadingShaded ? pdfStyles.sectionTitlePlain : undefined,
+                        renderOptions.tightDepartmentTopSpacing ? pdfStyles.sectionTitleTightTop : undefined,
                         renderOptions.spaciousDepartmentHeading
-                          ? styles.sectionTitleSpacious
+                          ? pdfStyles.sectionTitleSpacious
                           : undefined,
                       ]}
                     >
@@ -579,23 +405,23 @@ export function LabResultPdfDocument({
         {showSignOff ? (
           <View
             style={[
-              styles.signOff,
-              !renderOptions.includeReportDividers ? styles.signOffPlain : undefined,
+              pdfStyles.signOff,
+              !renderOptions.includeReportDividers ? pdfStyles.signOffPlain : undefined,
             ]}
           >
             {renderOptions.includeFooterDisclaimer ? (
-              <Text style={styles.footerNote}>
+              <Text style={pdfStyles.footerNote}>
                 Biological reference ranges are for clinical correlation only. This report was
                 generated electronically.
               </Text>
             ) : null}
             {renderOptions.includeAuthorizedSignature ? (
-              <Text style={styles.signOffLine}>
+              <Text style={pdfStyles.signOffLine}>
                 Authorized signatory: _______________________________
               </Text>
             ) : null}
             {renderOptions.includePathologistDesignation ? (
-              <Text style={styles.signOffLine}>Designation: Pathologist / Lab director</Text>
+              <Text style={pdfStyles.signOffLine}>Designation: Pathologist / Lab director</Text>
             ) : null}
           </View>
         ) : null}

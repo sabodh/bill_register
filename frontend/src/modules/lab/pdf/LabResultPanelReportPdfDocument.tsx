@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Page, Text, View } from '@react-pdf/renderer';
 
 import { formatBillPdfDateTime } from '../../billing/pdf/billPdfFormat';
 import type { LabResultPdfRenderOptions } from './labResultPdfRender';
@@ -10,118 +10,13 @@ import type {
   LabResultPdfTest,
 } from './labResultPdfTypes';
 import { formatDoctorForReport, isHospitalNamePresent } from './labResultPdfVisitFormat';
+import {
+  createLabResultPanelReportPdfStyles,
+  type LabResultPanelReportPdfStyles,
+} from './labResultPanelReportPdfStyles';
+import { resolveLabResultPdfTypography } from './labResultPdfTypography';
 
-const styles = StyleSheet.create({
-  page: {
-    paddingTop: 28,
-    paddingBottom: 36,
-    paddingHorizontal: 28,
-    fontSize: 9,
-    fontFamily: 'Helvetica',
-    color: '#1a1a1a',
-  },
-  departmentTitle: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 11,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  panelTitle: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 10,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  singleTestTitle: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 10,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-    paddingBottom: 4,
-    marginBottom: 4,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 3,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#d9d9d9',
-  },
-  colTest: { width: '42%', paddingRight: 6 },
-  colValue: { width: '18%', fontFamily: 'Helvetica-Bold' },
-  colUnit: { width: '14%' },
-  colRef: { width: '26%', textAlign: 'right', fontSize: 8 },
-  headerCell: { fontFamily: 'Helvetica-Bold', fontSize: 9 },
-  narrativeBlock: {
-    marginTop: 10,
-    marginBottom: 6,
-    fontSize: 8.5,
-    lineHeight: 1.35,
-    color: '#333',
-  },
-  narrativeHeading: {
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-  },
-  sectionGap: { marginBottom: 16 },
-  endReport: {
-    marginTop: 14,
-    marginBottom: 18,
-    textAlign: 'center',
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 9,
-  },
-  patientHeader: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#bfbfbf',
-    paddingBottom: 12,
-    marginBottom: 14,
-  },
-  patientName: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 11,
-    marginBottom: 8,
-  },
-  patientHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  patientColLeft: {
-    width: '50%',
-    paddingRight: 10,
-  },
-  patientColRight: {
-    width: '40%',
-    marginLeft: '10%',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    marginBottom: 3,
-  },
-  detailLabel: {
-    width: 88,
-    fontFamily: 'Helvetica-Bold',
-  },
-  detailValue: { flex: 1 },
-  signOff: {
-    marginTop: 20,
-    paddingTop: 10,
-    borderTopWidth: 0.5,
-    borderTopColor: '#d9d9d9',
-  },
-  signOffRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  signOffCol: { width: '45%' },
-  signOffLine: { marginTop: 8, fontSize: 9 },
-  footerNote: { marginTop: 8, fontSize: 8, color: '#8c8c8c' },
-});
+let pdfStyles: LabResultPanelReportPdfStyles;
 
 function formatPanelAgeSex(ageYears: number | null, gender: 'M' | 'F' | 'O'): string {
   const agePart = ageYears != null ? `${ageYears} YRS` : '—';
@@ -138,11 +33,11 @@ function formatPanelDate(iso: string): string {
 
 function ColumnHeader() {
   return (
-    <View style={styles.tableHeader}>
-      <Text style={[styles.colTest, styles.headerCell]}>TEST</Text>
-      <Text style={[styles.colValue, styles.headerCell]}>VALUE</Text>
-      <Text style={[styles.colUnit, styles.headerCell]}>UNIT</Text>
-      <Text style={[styles.colRef, styles.headerCell]}>REFERENCE</Text>
+    <View style={pdfStyles.tableHeader}>
+      <Text style={[pdfStyles.colTest, pdfStyles.headerCell]}>TEST</Text>
+      <Text style={[pdfStyles.colValue, pdfStyles.headerCell]}>VALUE</Text>
+      <Text style={[pdfStyles.colUnit, pdfStyles.headerCell]}>UNIT</Text>
+      <Text style={[pdfStyles.colRef, pdfStyles.headerCell]}>REFERENCE</Text>
     </View>
   );
 }
@@ -150,11 +45,11 @@ function ColumnHeader() {
 function ResultTableRow({ row }: { row: LabResultPdfRow }) {
   const ref = row.reference?.trim() || '—';
   return (
-    <View style={styles.tableRow}>
-      <Text style={[styles.colTest, row.isSubtest ? { paddingLeft: 8 } : undefined]}>{row.name}</Text>
-      <Text style={styles.colValue}>{row.result?.trim() || '—'}</Text>
-      <Text style={styles.colUnit}>{row.unit?.trim() || '—'}</Text>
-      <Text style={styles.colRef}>{ref}</Text>
+    <View style={pdfStyles.tableRow}>
+      <Text style={[pdfStyles.colTest, row.isSubtest ? { paddingLeft: 8 } : undefined]}>{row.name}</Text>
+      <Text style={pdfStyles.colValue}>{row.result?.trim() || '—'}</Text>
+      <Text style={pdfStyles.colUnit}>{row.unit?.trim() || '—'}</Text>
+      <Text style={pdfStyles.colRef}>{ref}</Text>
     </View>
   );
 }
@@ -174,10 +69,10 @@ function NarrativeBlocks({ text }: { text: string }) {
         const titled =
           rest.length > 0 && firstLine.length < 80 && !firstLine.includes('.') && lines.length > 1;
         return (
-          <View key={index} style={styles.narrativeBlock}>
+          <View key={index} style={pdfStyles.narrativeBlock}>
             {titled ? (
               <>
-                <Text style={styles.narrativeHeading}>{firstLine}</Text>
+                <Text style={pdfStyles.narrativeHeading}>{firstLine}</Text>
                 <Text>{rest}</Text>
               </>
             ) : (
@@ -199,8 +94,8 @@ function TestBlock({
 }) {
   const title = test.isPanel ? test.title : test.rows[0]?.name ?? test.title;
   return (
-    <View style={styles.sectionGap}>
-      <Text style={test.isPanel ? styles.panelTitle : styles.singleTestTitle}>{title}</Text>
+    <View style={pdfStyles.sectionGap}>
+      <Text style={test.isPanel ? pdfStyles.panelTitle : pdfStyles.singleTestTitle}>{title}</Text>
       <ColumnHeader />
       {test.rows.map((row, index) => (
         <ResultTableRow key={index} row={row} />
@@ -214,9 +109,9 @@ function TestBlock({
 
 function PatientDetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>: {value}</Text>
+    <View style={pdfStyles.detailRow}>
+      <Text style={pdfStyles.detailLabel}>{label}</Text>
+      <Text style={pdfStyles.detailValue}>: {value}</Text>
     </View>
   );
 }
@@ -233,10 +128,10 @@ function PatientDetailsBlock({
     renderOptions.includeHospitalName && isHospitalNamePresent(snapshot.hospital_name);
 
   return (
-    <View style={styles.patientHeader}>
-      <Text style={styles.patientName}>{snapshot.patient.name}</Text>
-      <View style={styles.patientHeaderRow}>
-        <View style={styles.patientColLeft}>
+    <View style={pdfStyles.patientHeader}>
+      <Text style={pdfStyles.patientName}>{snapshot.patient.name}</Text>
+      <View style={pdfStyles.patientHeaderRow}>
+        <View style={pdfStyles.patientColLeft}>
           <PatientDetailRow
             label="Age / Sex"
             value={formatPanelAgeSex(snapshot.patient.age_years, snapshot.patient.gender)}
@@ -246,7 +141,7 @@ function PatientDetailsBlock({
             <PatientDetailRow label="Hospital" value={snapshot.hospital_name.trim()} />
           ) : null}
         </View>
-        <View style={styles.patientColRight}>
+        <View style={pdfStyles.patientColRight}>
           {renderOptions.includeSampleCollectionTime ? (
             <PatientDetailRow
               label="Collected on"
@@ -271,6 +166,13 @@ export function LabResultPanelReportPdfDocument({
   snapshot: LabResultPdfSnapshot;
   renderOptions?: LabResultPdfRenderOptions;
 }) {
+  const typography = resolveLabResultPdfTypography(
+    'panel-report',
+    renderOptions.typographySize,
+    renderOptions.fontSizesPt,
+  );
+  pdfStyles = createLabResultPanelReportPdfStyles(renderOptions.fontPreset, typography);
+
   const showSignOff =
     renderOptions.includeFooterDisclaimer ||
     renderOptions.includeAuthorizedSignature ||
@@ -280,13 +182,13 @@ export function LabResultPanelReportPdfDocument({
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={pdfStyles.page}>
         <PatientDetailsBlock snapshot={snapshot} renderOptions={renderOptions} />
 
         {sections.map((section: LabResultPdfSection) => (
           <View key={section.departmentName}>
             {renderOptions.includeDepartmentHeadings ? (
-              <Text style={styles.departmentTitle}>{section.departmentName}</Text>
+              <Text style={pdfStyles.departmentTitle}>{section.departmentName}</Text>
             ) : null}
             {section.tests.map((test) => (
               <TestBlock
@@ -298,25 +200,25 @@ export function LabResultPanelReportPdfDocument({
           </View>
         ))}
 
-        <Text style={styles.endReport}>~~~ End of report ~~~</Text>
+        <Text style={pdfStyles.endReport}>~~~ End of report ~~~</Text>
 
         {showSignOff ? (
-          <View style={styles.signOff}>
+          <View style={pdfStyles.signOff}>
             {renderOptions.includeFooterDisclaimer ? (
-              <Text style={styles.footerNote}>
+              <Text style={pdfStyles.footerNote}>
                 Biological reference ranges are for clinical correlation only. This report was
                 generated electronically.
               </Text>
             ) : null}
-            <View style={styles.signOffRow}>
-              <View style={styles.signOffCol}>
+            <View style={pdfStyles.signOffRow}>
+              <View style={pdfStyles.signOffCol}>
                 {renderOptions.includeAuthorizedSignature ? (
-                  <Text style={styles.signOffLine}>Lab Incharge</Text>
+                  <Text style={pdfStyles.signOffLine}>Lab Incharge</Text>
                 ) : null}
               </View>
-              <View style={styles.signOffCol}>
+              <View style={pdfStyles.signOffCol}>
                 {renderOptions.includePathologistDesignation ? (
-                  <Text style={styles.signOffLine}>Pathologist</Text>
+                  <Text style={pdfStyles.signOffLine}>Pathologist</Text>
                 ) : null}
               </View>
             </View>
