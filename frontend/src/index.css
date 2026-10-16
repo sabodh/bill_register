@@ -777,6 +777,44 @@ body {
   max-height: min(70vh, 42rem);
   flex: 1 1 auto;
   min-height: 12rem;
+  overflow-y: auto;
+}
+
+/* Billing / results: match column heights; bill list keeps its own scroll (see below) */
+.registration-desk-layout.lab-results-desk-layout,
+.registration-desk-layout.billing-desk-layout {
+  align-items: stretch;
+}
+
+.registration-desk-layout.lab-results-desk-layout > .ant-card.billing-workspace-main,
+.registration-desk-layout.billing-desk-layout > .ant-card.billing-workspace-main {
+  align-self: stretch;
+}
+
+.registration-desk-layout.lab-results-desk-layout .lab-bills-sidebar,
+.registration-desk-layout.billing-desk-layout .lab-bills-sidebar {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+/*
+ * Billing / results: bill list scroll fills the sidebar up to the column height (set by
+ * the left workspace), without growing the row. Keeps in-panel scrolling like the 70vh cap.
+ */
+.registration-desk-layout.lab-results-desk-layout .lab-bills-sidebar .doctor-list-panel-scroll,
+.registration-desk-layout.billing-desk-layout .lab-bills-sidebar .doctor-list-panel-scroll {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
 }
 
 .billing-desk-layout {
@@ -1501,6 +1539,11 @@ body {
   align-items: flex-start;
   gap: 1.5rem;
   padding-top: 0.75rem;
+}
+
+.registration-desk-layout.lab-results-desk-layout,
+.registration-desk-layout.billing-desk-layout {
+  align-items: stretch;
 }
 
 .registration-tab-panels {
