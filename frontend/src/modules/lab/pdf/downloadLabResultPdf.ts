@@ -1,8 +1,12 @@
 import { createLabResultPdfBlobUrl } from './createLabResultPdfBlobUrl';
+import type { LabResultPdfRenderOptions } from './labResultPdfRender';
 import type { LabResultPdfSnapshot } from './labResultPdfTypes';
 
-export async function downloadLabResultPdf(snapshot: LabResultPdfSnapshot): Promise<void> {
-  const url = await createLabResultPdfBlobUrl(snapshot);
+export async function downloadLabResultPdf(
+  snapshot: LabResultPdfSnapshot,
+  options?: LabResultPdfRenderOptions,
+): Promise<void> {
+  const url = await createLabResultPdfBlobUrl(snapshot, options);
   const link = document.createElement('a');
   link.href = url;
   link.download = `LabResult-${snapshot.bill_number}.pdf`;

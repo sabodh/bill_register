@@ -25,10 +25,14 @@ export type LabResultPdfPatient = {
   uhid: string;
   phone: string;
   ageSex: string;
+  age_years: number | null;
+  gender: 'M' | 'F' | 'O';
 };
 
 export type LabResultPdfSnapshot = {
   bill_number: string;
+  /** Absolute or site-relative URL for branch letterhead image. */
+  letterhead_image_url: string | null;
   hospital_name: string;
   doctor_name: string;
   sample_collected_at: string;

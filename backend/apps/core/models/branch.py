@@ -8,6 +8,12 @@ class Branch(AuditFieldsModel):
     code = models.CharField(max_length=20, unique=True)
     address = models.TextField(blank=True)
     phone = models.CharField(max_length=20, blank=True)
+    report_letterhead = models.ImageField(
+        upload_to="branch_letterheads/",
+        blank=True,
+        null=True,
+        help_text="Letterhead image for printed lab reports (upload via Django admin).",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:

@@ -1,5 +1,6 @@
 import type { BillDetailRecord } from '../../../api/types/models';
 import { createBillPdfBlobUrl } from './createBillPdfBlobUrl';
+import type { BillPdfRenderOptions } from './billPdfRender';
 import { chooseBillPageSize } from './billPageSize';
 import { billPdfSnapshotFromDetail } from './billPdfSnapshot';
 import type { BillPdfSnapshot } from './billPdfTypes';
@@ -10,8 +11,11 @@ export async function downloadBillPdfFromDetail(bill: BillDetailRecord): Promise
   return snapshot;
 }
 
-export async function downloadBillPdf(snapshot: BillPdfSnapshot): Promise<void> {
-  const url = await createBillPdfBlobUrl(snapshot);
+export async function downloadBillPdf(
+  snapshot: BillPdfSnapshot,
+  options?: BillPdfRenderOptions,
+): Promise<void> {
+  const url = await createBillPdfBlobUrl(snapshot, options);
   const link = document.createElement('a');
   link.href = url;
   link.download = `Bill-${snapshot.bill_number}.pdf`;

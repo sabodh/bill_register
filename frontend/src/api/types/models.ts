@@ -382,6 +382,8 @@ export interface LabResultBillDetail {
   doctor_name: string;
   hospital: number | null;
   hospital_name: string;
+  /** Relative media URL for hospital/branch letterhead image, when configured. */
+  letterhead_image_url?: string | null;
   sample_collected_at: string;
   sample_tested_at: string | null;
   total_amount: string;

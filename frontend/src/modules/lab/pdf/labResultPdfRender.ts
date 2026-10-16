@@ -1,0 +1,84 @@
+import type { LabResultPdfRow, LabResultPdfSection, LabResultPdfSnapshot, LabResultPdfTest } from './labResultPdfTypes';
+
+/** Toggles for result report PDF preview, print, and download. */
+export type LabResultPdfRenderOptions = {
+  /** Show letterhead image when available; when off, keeps blank letterpad space (patient details unchanged). */
+  includeLetterhead: boolean;
+  includeHospitalName: boolean;
+  includeSampleCollectionTime: boolean;
+  includeDepartmentHeadings: boolean;
+  includeMethodLines: boolean;
+  omitTestsWithoutResults: boolean;
+  /** “Authorized signatory: ___” line. */
+  includeAuthorizedSignature: boolean;
+  /** “Designation: Pathologist / Lab director” line. */
+  includePathologistDesignation: boolean;
+  /** Per-test “Note: …” interpretation lines. */
+  includeInterpretation: boolean;
+  includeFooterDisclaimer: boolean;
+};
+
+export const DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS: LabResultPdfRenderOptions = {
+  includeLetterhead: true,
+  includeHospitalName: true,
+  includeSampleCollectionTime: true,
+  includeDepartmentHeadings: true,
+  includeMethodLines: true,
+  omitTestsWithoutResults: true,
+  includeAuthorizedSignature: true,
+  includePathologistDesignation: true,
+  includeInterpretation: true,
+  includeFooterDisclaimer: true,
+};
+
+function rowHasResult(row: LabResultPdfRow): boolean {
+  return (row.result ?? '').trim().length > 0;
+}
+
+function filterTest(test: LabResultPdfTest, omitEmpty: boolean): LabResultPdfTest | null {
+  if (!omitEmpty) {
+    return test;
+  }
+  if (test.isPanel) {
+    const rows = test.rows.filter(rowHasResult);
+    if (rows.length === 0) {
+      return null;
+    }
+    return { ...test, rows };
+  }
+  if (!test.rows.some(rowHasResult)) {
+    return null;
+  }
+  return test;
+}
+
+function filterSections(sections: LabResultPdfSection[], omitEmpty: boolean): LabResultPdfSection[] {
+  if (!omitEmpty) {
+    return sections;
+  }
+  return sections
+    .map((section) => ({
+      ...section,
+      tests: section.tests
+        .map((test) => filterTest(test, true))
+        .filter((test): test is LabResultPdfTest => test != null),
+    }))
+    .filter((section) => section.tests.length > 0);
+}
+
+export function labResultPdfSnapshotForRender(
+  snapshot: LabResultPdfSnapshot,
+  options: LabResultPdfRenderOptions,
+): LabResultPdfSnapshot {
+  if (!options.omitTestsWithoutResults) {
+    return snapshot;
+  }
+  return {
+    ...snapshot,
+    sections: filterSections(snapshot.sections, true),
+  };
+}
+
+export function labResultPdfOptionsKey(options: LabResultPdfRenderOptions): string {
+  return JSON.stringify(options);
+}

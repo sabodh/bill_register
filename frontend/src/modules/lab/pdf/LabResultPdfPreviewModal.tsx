@@ -1,8 +1,17 @@
-import { Alert, Button, Modal, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { Button, Modal } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { PdfPreviewFrame } from '../../../components/PdfPreviewFrame';
+import { usePdfPreviewRegeneration } from '../../../hooks/usePdfPreviewRegeneration';
 import { createLabResultPdfBlobUrl } from './createLabResultPdfBlobUrl';
 import { downloadLabResultPdf, printLabResultPdf } from './downloadLabResultPdf';
+import { LabResultPdfOptionsBar } from './LabResultPdfOptionsBar';
+import {
+  DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS,
+  labResultPdfOptionsKey,
+  labResultPdfSnapshotForRender,
+  type LabResultPdfRenderOptions,
+} from './labResultPdfRender';
 import type { LabResultPdfSnapshot } from './labResultPdfTypes';
 
 type LabResultPdfPreviewModalProps = {
@@ -16,70 +25,44 @@ export function LabResultPdfPreviewModal({
   snapshot,
   onClose,
 }: LabResultPdfPreviewModalProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const urlRef = useRef<string | null>(null);
+  const [renderOptions, setRenderOptions] = useState<LabResultPdfRenderOptions>(
+    DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS,
+  );
 
   const snapshotKey = snapshot
     ? `${snapshot.bill_number}:${snapshot.sections.length}:${snapshot.reported_at}`
     : '';
 
   useEffect(() => {
-    if (!open || !snapshot) {
-      if (urlRef.current) {
-        URL.revokeObjectURL(urlRef.current);
-        urlRef.current = null;
-      }
-      setPreviewUrl(null);
-      setLoading(false);
-      setError(null);
-      return;
+    if (open) {
+      setRenderOptions(DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS);
     }
+  }, [open, snapshotKey]);
 
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setPreviewUrl(null);
-    if (urlRef.current) {
-      URL.revokeObjectURL(urlRef.current);
-      urlRef.current = null;
+  const regenerateKey = useMemo(
+    () => `${snapshotKey}:${labResultPdfOptionsKey(renderOptions)}`,
+    [snapshotKey, renderOptions],
+  );
+
+  const generate = useCallback(() => {
+    if (!snapshot) {
+      return Promise.reject(new Error('No snapshot'));
     }
+    return createLabResultPdfBlobUrl(snapshot, renderOptions);
+  }, [snapshot, renderOptions]);
 
-    void createLabResultPdfBlobUrl(snapshot)
-      .then((url) => {
-        if (cancelled) {
-          URL.revokeObjectURL(url);
-          return;
-        }
-        urlRef.current = url;
-        setPreviewUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError('Could not generate report PDF.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
+  const { previewUrl, loading, error } = usePdfPreviewRegeneration(
+    open && snapshot != null,
+    regenerateKey,
+    generate,
+  );
 
-    return () => {
-      cancelled = true;
-    };
-  }, [open, snapshotKey, snapshot]);
-
-  useEffect(() => {
-    return () => {
-      if (urlRef.current) {
-        URL.revokeObjectURL(urlRef.current);
-        urlRef.current = null;
-      }
-    };
-  }, []);
+  const noTestsAfterFilter =
+    snapshot != null &&
+    labResultPdfSnapshotForRender(snapshot, renderOptions).sections.every(
+      (section) => section.tests.length === 0,
+    );
 
   const handleDownload = async () => {
     if (!snapshot) {
@@ -87,7 +70,7 @@ export function LabResultPdfPreviewModal({
     }
     setDownloading(true);
     try {
-      await downloadLabResultPdf(snapshot);
+      await downloadLabResultPdf(snapshot, renderOptions);
     } finally {
       setDownloading(false);
     }
@@ -111,13 +94,13 @@ export function LabResultPdfPreviewModal({
       destroyOnClose
       maskClosable={false}
       footer={[
-        <Button key="print" disabled={!previewUrl || Boolean(error)} onClick={handlePrint}>
+        <Button key="print" disabled={!previewUrl || Boolean(error) || noTestsAfterFilter} onClick={handlePrint}>
           Print
         </Button>,
         <Button
           key="download"
           loading={downloading}
-          disabled={!snapshot || Boolean(error)}
+          disabled={!snapshot || Boolean(error) || noTestsAfterFilter}
           onClick={() => void handleDownload()}
         >
           Download PDF
@@ -127,17 +110,23 @@ export function LabResultPdfPreviewModal({
         </Button>,
       ]}
     >
-      <div className="bill-pdf-preview-body">
-        {loading ? (
-          <div className="bill-pdf-preview-loading">
-            <Spin tip="Generating PDF…" />
-          </div>
-        ) : null}
-        {error ? <Alert type="error" showIcon message={error} /> : null}
-        {!loading && !error && previewUrl ? (
-          <iframe className="bill-pdf-preview-frame" src={previewUrl} title="Lab result PDF preview" />
-        ) : null}
-      </div>
+      {snapshot ? (
+        <LabResultPdfOptionsBar
+          options={renderOptions}
+          onChange={(patch) => setRenderOptions((prev) => ({ ...prev, ...patch }))}
+        />
+      ) : null}
+      <PdfPreviewFrame
+        previewUrl={noTestsAfterFilter ? null : previewUrl}
+        loading={loading}
+        error={error}
+        emptyMessage={
+          noTestsAfterFilter
+            ? 'No tests with results to show. Turn off “Omit tests with no result” or enter results first.'
+            : null
+        }
+        title="Lab result PDF preview"
+      />
     </Modal>
   );
 }

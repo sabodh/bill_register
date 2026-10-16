@@ -172,6 +172,7 @@ class LabResultBillDetailSerializer(serializers.ModelSerializer):
     patient_detail = serializers.SerializerMethodField()
     work_items = serializers.SerializerMethodField()
     saved_results = serializers.SerializerMethodField()
+    letterhead_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Bill
@@ -190,6 +191,7 @@ class LabResultBillDetailSerializer(serializers.ModelSerializer):
             "notes",
             "work_items",
             "saved_results",
+            "letterhead_image_url",
             "created_at",
         ]
 
@@ -213,3 +215,9 @@ class LabResultBillDetailSerializer(serializers.ModelSerializer):
 
     def get_saved_results(self, obj: Bill) -> list[dict]:
         return saved_results_for_bill(obj)
+
+    def get_letterhead_image_url(self, obj: Bill) -> str | None:
+        branch = obj.hospital
+        if branch is None or not branch.report_letterhead:
+            return None
+        return branch.report_letterhead.url

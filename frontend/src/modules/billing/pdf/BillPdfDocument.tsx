@@ -102,46 +102,52 @@ function createStyles(pageSize: BillPdfPageSize) {
 
 type BillPdfDocumentProps = {
   snapshot: BillPdfSnapshot;
+  renderOptions?: { includeLetterhead: boolean };
 };
 
-export function BillPdfDocument({ snapshot }: BillPdfDocumentProps) {
+export function BillPdfDocument({ snapshot, renderOptions }: BillPdfDocumentProps) {
+  const includeLetterhead = renderOptions?.includeLetterhead ?? true;
   const pageSize = chooseBillPageSize(snapshot);
   const styles = createStyles(pageSize);
 
   return (
     <Document title={`Bill ${snapshot.bill_number}`}>
       <Page size={pageSize} style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.hospital}>{snapshot.hospital_name}</Text>
-          <Text style={styles.title}>Laboratory bill / receipt</Text>
-          <View style={styles.metaRow}>
-            <View style={styles.metaCol}>
-              <Text style={styles.label}>Bill no.</Text>
-              <Text style={styles.value}>{snapshot.bill_number}</Text>
+        {includeLetterhead ? (
+          <>
+            <View style={styles.header}>
+              <Text style={styles.hospital}>{snapshot.hospital_name}</Text>
+              <Text style={styles.title}>Laboratory bill / receipt</Text>
+              <View style={styles.metaRow}>
+                <View style={styles.metaCol}>
+                  <Text style={styles.label}>Bill no.</Text>
+                  <Text style={styles.value}>{snapshot.bill_number}</Text>
+                </View>
+                <View style={styles.metaCol}>
+                  <Text style={styles.label}>Sample collected</Text>
+                  <Text>{formatBillPdfDateTime(snapshot.sample_collected_at)}</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.metaCol}>
-              <Text style={styles.label}>Sample collected</Text>
-              <Text>{formatBillPdfDateTime(snapshot.sample_collected_at)}</Text>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Patient</Text>
+              <Text style={styles.value}>{snapshot.patient.name}</Text>
+              <Text>
+                UHID {snapshot.patient.uhid} · {snapshot.patient.ageSex} · {snapshot.patient.phone}
+              </Text>
+              {snapshot.patient.address !== '—' ? (
+                <Text style={{ marginTop: 2 }}>{snapshot.patient.address}</Text>
+              ) : null}
             </View>
-          </View>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Patient</Text>
-          <Text style={styles.value}>{snapshot.patient.name}</Text>
-          <Text>
-            UHID {snapshot.patient.uhid} · {snapshot.patient.ageSex} · {snapshot.patient.phone}
-          </Text>
-          {snapshot.patient.address !== '—' ? (
-            <Text style={{ marginTop: 2 }}>{snapshot.patient.address}</Text>
-          ) : null}
-        </View>
-
-        {snapshot.doctor_name !== '—' ? (
-          <View style={styles.section}>
-            <Text style={styles.label}>Referring doctor</Text>
-            <Text>{snapshot.doctor_name}</Text>
-          </View>
+            {snapshot.doctor_name !== '—' ? (
+              <View style={styles.section}>
+                <Text style={styles.label}>Referring doctor</Text>
+                <Text>{snapshot.doctor_name}</Text>
+              </View>
+            ) : null}
+          </>
         ) : null}
 
         <View style={styles.section}>

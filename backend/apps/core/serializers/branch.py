@@ -12,6 +12,7 @@ class BranchSerializer(serializers.ModelSerializer):
             "code",
             "address",
             "phone",
+            "report_letterhead",
             "is_active",
             "created_at",
             "updated_at",

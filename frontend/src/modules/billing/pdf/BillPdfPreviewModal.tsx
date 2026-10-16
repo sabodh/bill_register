@@ -1,8 +1,12 @@
-import { Alert, Button, Modal, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { Button, Modal } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { PdfPreviewFrame } from '../../../components/PdfPreviewFrame';
+import { usePdfPreviewRegeneration } from '../../../hooks/usePdfPreviewRegeneration';
+import { PdfPreviewOptionsBar } from '../../../components/PdfPreviewOptionsBar';
 import { billPdfPageSizeLabel, downloadBillPdf } from './downloadBillPdf';
 import { createBillPdfBlobUrl } from './createBillPdfBlobUrl';
+import { DEFAULT_BILL_PDF_RENDER_OPTIONS, type BillPdfRenderOptions } from './billPdfRender';
 import type { BillPdfSnapshot } from './billPdfTypes';
 
 type BillPdfPreviewModalProps = {
@@ -12,70 +16,38 @@ type BillPdfPreviewModalProps = {
 };
 
 export function BillPdfPreviewModal({ open, snapshot, onClose }: BillPdfPreviewModalProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const urlRef = useRef<string | null>(null);
+  const [renderOptions, setRenderOptions] = useState<BillPdfRenderOptions>(
+    DEFAULT_BILL_PDF_RENDER_OPTIONS,
+  );
 
   const snapshotKey = snapshot
     ? `${snapshot.bill_number}:${snapshot.total}:${snapshot.lines.length}`
     : '';
 
   useEffect(() => {
-    if (!open || !snapshot) {
-      if (urlRef.current) {
-        URL.revokeObjectURL(urlRef.current);
-        urlRef.current = null;
-      }
-      setPreviewUrl(null);
-      setLoading(false);
-      setError(null);
-      return;
+    if (open) {
+      setRenderOptions(DEFAULT_BILL_PDF_RENDER_OPTIONS);
     }
+  }, [open, snapshotKey]);
 
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setPreviewUrl(null);
-    if (urlRef.current) {
-      URL.revokeObjectURL(urlRef.current);
-      urlRef.current = null;
+  const regenerateKey = useMemo(
+    () => `${snapshotKey}:${renderOptions.includeLetterhead ? '1' : '0'}`,
+    [snapshotKey, renderOptions.includeLetterhead],
+  );
+
+  const generate = useCallback(() => {
+    if (!snapshot) {
+      return Promise.reject(new Error('No snapshot'));
     }
+    return createBillPdfBlobUrl(snapshot, renderOptions);
+  }, [snapshot, renderOptions]);
 
-    void createBillPdfBlobUrl(snapshot)
-      .then((url) => {
-        if (cancelled) {
-          URL.revokeObjectURL(url);
-          return;
-        }
-        urlRef.current = url;
-        setPreviewUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError('Could not generate PDF preview.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, snapshotKey, snapshot]);
-
-  useEffect(() => {
-    return () => {
-      if (urlRef.current) {
-        URL.revokeObjectURL(urlRef.current);
-        urlRef.current = null;
-      }
-    };
-  }, []);
+  const { previewUrl, loading, error } = usePdfPreviewRegeneration(
+    open && snapshot != null,
+    regenerateKey,
+    generate,
+  );
 
   const pageSize = snapshot ? billPdfPageSizeLabel(snapshot) : '';
 
@@ -85,7 +57,7 @@ export function BillPdfPreviewModal({ open, snapshot, onClose }: BillPdfPreviewM
     }
     setDownloading(true);
     try {
-      await downloadBillPdf(snapshot);
+      await downloadBillPdf(snapshot, renderOptions);
     } finally {
       setDownloading(false);
     }
@@ -115,17 +87,20 @@ export function BillPdfPreviewModal({ open, snapshot, onClose }: BillPdfPreviewM
         </Button>,
       ]}
     >
-      <div className="bill-pdf-preview-body">
-        {loading ? (
-          <div className="bill-pdf-preview-loading">
-            <Spin tip="Generating PDF…" />
-          </div>
-        ) : null}
-        {error ? <Alert type="error" showIcon message={error} /> : null}
-        {!loading && !error && previewUrl ? (
-          <iframe className="bill-pdf-preview-frame" src={previewUrl} title="Bill PDF preview" />
-        ) : null}
-      </div>
+      {snapshot ? (
+        <PdfPreviewOptionsBar
+          showHeader={renderOptions.includeLetterhead}
+          onShowHeaderChange={(checked) =>
+            setRenderOptions((prev) => ({ ...prev, includeLetterhead: checked }))
+          }
+        />
+      ) : null}
+      <PdfPreviewFrame
+        previewUrl={previewUrl}
+        loading={loading}
+        error={error}
+        title="Bill PDF preview"
+      />
     </Modal>
   );
 }

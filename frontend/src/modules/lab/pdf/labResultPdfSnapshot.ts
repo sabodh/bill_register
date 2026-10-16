@@ -7,6 +7,8 @@ import {
 } from '../labResultValues';
 import type { LabResultPdfRow, LabResultPdfSection, LabResultPdfSnapshot, LabResultPdfTest } from './labResultPdfTypes';
 import { formatPatientAgeSex } from '../../billing/pdf/billPdfFormat';
+import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
+import { DEFAULT_LAB_REPORT_LETTERHEAD_URL } from './defaultLabLetterhead';
 
 function valueFor(
   values: Record<string, string>,
@@ -136,6 +138,8 @@ export function labResultPdfSnapshotFromBill(
 
   return {
     bill_number: bill.bill_number,
+    letterhead_image_url:
+      resolveMediaUrl(bill.letterhead_image_url ?? null) ?? DEFAULT_LAB_REPORT_LETTERHEAD_URL,
     hospital_name: bill.hospital_name?.trim() || '—',
     doctor_name: bill.doctor_name?.trim() || '—',
     sample_collected_at: bill.sample_collected_at,
@@ -146,6 +150,8 @@ export function labResultPdfSnapshotFromBill(
       uhid: patient?.uhid ?? '—',
       phone: patient?.phone ?? '—',
       ageSex: formatPatientAgeSex(gender, patient?.age_years ?? null),
+      age_years: patient?.age_years ?? null,
+      gender,
     },
     sections: groupSections(bill.work_items, valueMap),
   };

@@ -1,12 +1,21 @@
-import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 import { formatBillPdfDateTime } from '../../billing/pdf/billPdfFormat';
+import {
+  formatDoctorForReport,
+  formatPatientNameWithAgeGender,
+  isHospitalNamePresent,
+} from './labResultPdfVisitFormat';
+import type { LabResultPdfRenderOptions } from './labResultPdfRender';
+import { DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS } from './labResultPdfRender';
 import type {
   LabResultPdfRow,
   LabResultPdfSection,
   LabResultPdfSnapshot,
   LabResultPdfTest,
 } from './labResultPdfTypes';
+
+import { LETTERPAD_BAND_HEIGHT_PT } from './labResultLetterheadLayout';
 
 function testsInReportOrder(sections: LabResultPdfSection[]): LabResultPdfTest[] {
   const tests: LabResultPdfTest[] = [];
@@ -20,38 +29,47 @@ function testsInReportOrder(sections: LabResultPdfSection[]): LabResultPdfTest[]
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 36,
-    paddingBottom: 40,
-    paddingHorizontal: 40,
+    paddingTop: 0,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
     fontSize: 10,
     fontFamily: 'Helvetica',
     color: '#1a1a1a',
   },
   header: {
-    marginBottom: 14,
+    marginBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#d9d9d9',
-    paddingBottom: 10,
+    paddingBottom: 6,
   },
-  hospital: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
+  visitBlock: {
+    fontSize: 9,
   },
-  title: {
-    fontSize: 11,
-    color: '#595959',
-  },
-  metaGrid: {
+  visitBlockAfterLetterhead: {
     marginTop: 10,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
   },
-  metaItem: { width: '47%' },
-  label: { color: '#8c8c8c', fontSize: 8, marginBottom: 2 },
-  value: { fontFamily: 'Helvetica-Bold', fontSize: 10 },
-  resultsBlock: { marginTop: 8 },
+  visitRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 3,
+  },
+  visitCol: {
+    width: '50%',
+    paddingRight: 10,
+  },
+  visitColRight: {
+    width: '40%',
+    marginLeft: '10%',
+    paddingRight: 0,
+  },
+  visitLine: {
+    fontSize: 9,
+  },
+  visitLabel: {
+    fontFamily: 'Helvetica-Bold',
+    color: '#434343',
+  },
+  resultsBlock: { marginTop: 4 },
   section: { marginTop: 14 },
   sectionTitle: {
     fontFamily: 'Helvetica-Bold',
@@ -126,7 +144,150 @@ const styles = StyleSheet.create({
   },
   signOffLine: { marginTop: 16, fontSize: 9 },
   footerNote: { marginTop: 8, fontSize: 8, color: '#8c8c8c' },
+  letterheadBand: {
+    width: '100%',
+    marginBottom: 0,
+  },
+  letterheadImage: {
+    width: '100%',
+    objectFit: 'contain',
+    objectPosition: 'top center',
+  },
+  sampleLetterheadTitle: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 16,
+    color: '#1a365d',
+    textAlign: 'center',
+  },
+  sampleLetterheadSub: {
+    marginTop: 6,
+    fontSize: 9,
+    color: '#475569',
+    textAlign: 'center',
+  },
+  sampleLetterheadHint: {
+    marginTop: 10,
+    fontSize: 8,
+    color: '#94a3b8',
+    textAlign: 'center',
+  },
+  sampleLetterheadRule: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#cbd5e1',
+    paddingTop: 8,
+  },
 });
+
+function VisitDetailLine({ label, value }: { label: string; value: string }) {
+  return (
+    <Text style={styles.visitLine} wrap={false}>
+      <Text style={styles.visitLabel}>{label}</Text>
+      {value}
+    </Text>
+  );
+}
+
+function VisitDetailsBlock({
+  snapshot,
+  renderOptions,
+}: {
+  snapshot: LabResultPdfSnapshot;
+  renderOptions: LabResultPdfRenderOptions;
+}) {
+  const patientLine = formatPatientNameWithAgeGender(
+    snapshot.patient.name,
+    snapshot.patient.age_years,
+    snapshot.patient.gender,
+  );
+  const doctorLine = formatDoctorForReport(snapshot.doctor_name);
+  const showHospital =
+    renderOptions.includeHospitalName && isHospitalNamePresent(snapshot.hospital_name);
+  const showSample = renderOptions.includeSampleCollectionTime;
+  const reportOn = formatBillPdfDateTime(snapshot.reported_at);
+  const showThirdRow = showHospital || showSample;
+
+  return (
+    <View style={[styles.visitBlock, styles.visitBlockAfterLetterhead]}>
+      <View style={styles.visitRow}>
+        <View style={styles.visitCol}>
+          <VisitDetailLine label="Patient name: " value={patientLine} />
+        </View>
+        <View style={styles.visitColRight}>
+          {showSample ? (
+            <VisitDetailLine
+              label="Sample collected: "
+              value={formatBillPdfDateTime(snapshot.sample_collected_at)}
+            />
+          ) : (
+            <VisitDetailLine label="Report on: " value={reportOn} />
+          )}
+        </View>
+      </View>
+      <View style={styles.visitRow}>
+        <View style={styles.visitCol}>
+          <VisitDetailLine label="Ref.Doctor: " value={doctorLine} />
+        </View>
+        <View style={styles.visitColRight}>
+          {showSample ? (
+            <VisitDetailLine label="Report on: " value={reportOn} />
+          ) : (
+            <VisitDetailLine label="Bill no: " value={snapshot.bill_number} />
+          )}
+        </View>
+      </View>
+      {showThirdRow ? (
+        <View style={styles.visitRow}>
+          <View style={styles.visitCol}>
+            {showHospital ? (
+              <VisitDetailLine label="Hospital: " value={snapshot.hospital_name.trim()} />
+            ) : null}
+          </View>
+          <View style={styles.visitColRight}>
+            {showSample ? <VisitDetailLine label="Bill no: " value={snapshot.bill_number} /> : null}
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function BuiltInSampleLetterhead() {
+  return (
+    <View>
+      <Text style={styles.sampleLetterheadTitle}>Sample Hospital & Laboratory</Text>
+      <Text style={styles.sampleLetterheadSub}>
+        123 Health Street · Sample City · +91 00000 00000
+      </Text>
+      <View style={styles.sampleLetterheadRule}>
+        <Text style={styles.sampleLetterheadHint}>
+          Sample letterhead — replace via Branch → Report letterhead in admin
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function LetterheadBand({
+  imageSrc,
+  useBuiltInSample,
+  showImage,
+  bandHeightPt,
+}: {
+  imageSrc: string | null;
+  useBuiltInSample: boolean;
+  showImage: boolean;
+  bandHeightPt: number;
+}) {
+  return (
+    <View style={[styles.letterheadBand, { height: bandHeightPt }]}>
+      {showImage && imageSrc ? (
+        <Image src={imageSrc} style={[styles.letterheadImage, { height: bandHeightPt }]} />
+      ) : null}
+      {showImage && !imageSrc && useBuiltInSample ? <BuiltInSampleLetterhead /> : null}
+    </View>
+  );
+}
 
 function ColumnHeader() {
   return (
@@ -199,14 +360,24 @@ function ResultRow({ row, showDivider = true }: { row: LabResultPdfRow; showDivi
   );
 }
 
-function TestBlock({ test, isLastTest }: { test: LabResultPdfTest; isLastTest: boolean }) {
+function TestBlock({
+  test,
+  isLastTest,
+  includeMethodLines,
+  includeInterpretation,
+}: {
+  test: LabResultPdfTest;
+  isLastTest: boolean;
+  includeMethodLines: boolean;
+  includeInterpretation: boolean;
+}) {
   return (
     <View style={styles.testBlock}>
       {test.isPanel ? (
         <>
           <View style={styles.testHeading}>
             <Text style={styles.panelTitle}>{test.title}</Text>
-            <MethodLine methodName={test.methodName} />
+            {includeMethodLines ? <MethodLine methodName={test.methodName} /> : null}
           </View>
           {test.rows.map((row, index) => (
             <ResultRow
@@ -224,66 +395,55 @@ function TestBlock({ test, isLastTest }: { test: LabResultPdfTest; isLastTest: b
               <ResultUnitCell result={row.result} unit={row.unit} />
               <RefCell reference={row.reference} />
             </View>
-            <View style={styles.methodRow}>
-              <View style={styles.colName}>
-                <MethodLine methodName={test.methodName} />
+            {includeMethodLines ? (
+              <View style={styles.methodRow}>
+                <View style={styles.colName}>
+                  <MethodLine methodName={test.methodName} />
+                </View>
+                <View style={styles.colResult} />
+                <View style={styles.colRef} />
               </View>
-              <View style={styles.colResult} />
-              <View style={styles.colRef} />
-            </View>
+            ) : null}
           </View>
         ))
       )}
-      {test.interpretation ? (
+      {includeInterpretation && test.interpretation ? (
         <Text style={styles.interpretation}>Note: {test.interpretation}</Text>
       ) : null}
     </View>
   );
 }
 
-export function LabResultPdfDocument({ snapshot }: { snapshot: LabResultPdfSnapshot }) {
+export function LabResultPdfDocument({
+  snapshot,
+  renderOptions = DEFAULT_LAB_RESULT_PDF_RENDER_OPTIONS,
+  letterheadImageSrc = null,
+  useBuiltInSampleLetterhead = false,
+  letterheadBandHeightPt = LETTERPAD_BAND_HEIGHT_PT,
+}: {
+  snapshot: LabResultPdfSnapshot;
+  renderOptions?: LabResultPdfRenderOptions;
+  letterheadImageSrc?: string | null;
+  useBuiltInSampleLetterhead?: boolean;
+  letterheadBandHeightPt?: number;
+}) {
   const orderedTests = testsInReportOrder(snapshot.sections);
+  const showSignOff =
+    renderOptions.includeFooterDisclaimer ||
+    renderOptions.includeAuthorizedSignature ||
+    renderOptions.includePathologistDesignation;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        <LetterheadBand
+          imageSrc={letterheadImageSrc}
+          useBuiltInSample={useBuiltInSampleLetterhead}
+          showImage={renderOptions.includeLetterhead}
+          bandHeightPt={letterheadBandHeightPt}
+        />
         <View style={styles.header}>
-          <Text style={styles.hospital}>{snapshot.hospital_name}</Text>
-          <Text style={styles.title}>Laboratory Report</Text>
-          <View style={styles.metaGrid}>
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>Patient</Text>
-              <Text style={styles.value}>{snapshot.patient.name}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>UHID / ID</Text>
-              <Text style={styles.value}>{snapshot.patient.uhid}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>Age / Sex</Text>
-              <Text style={styles.value}>{snapshot.patient.ageSex}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>Phone</Text>
-              <Text style={styles.value}>{snapshot.patient.phone}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>Bill no.</Text>
-              <Text style={styles.value}>{snapshot.bill_number}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>Referred by</Text>
-              <Text style={styles.value}>{snapshot.doctor_name}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>Sample collected</Text>
-              <Text style={styles.value}>{formatBillPdfDateTime(snapshot.sample_collected_at)}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>Report date</Text>
-              <Text style={styles.value}>{formatBillPdfDateTime(snapshot.reported_at)}</Text>
-            </View>
-          </View>
+          <VisitDetailsBlock snapshot={snapshot} renderOptions={renderOptions} />
         </View>
 
         <View style={styles.resultsBlock}>
@@ -296,7 +456,9 @@ export function LabResultPdfDocument({ snapshot }: { snapshot: LabResultPdfSnaps
               .filter((section) => section.tests.length > 0)
               .map((section) => (
                 <View key={section.departmentName} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{section.departmentName}</Text>
+                  {renderOptions.includeDepartmentHeadings ? (
+                    <Text style={styles.sectionTitle}>{section.departmentName}</Text>
+                  ) : null}
                   {section.tests.map((test) => {
                     const isLastTest = testIndex === orderedTests.length - 1;
                     testIndex += 1;
@@ -305,6 +467,8 @@ export function LabResultPdfDocument({ snapshot }: { snapshot: LabResultPdfSnaps
                         key={`${test.title}-${test.testCode}-${testIndex}`}
                         test={test}
                         isLastTest={isLastTest}
+                        includeMethodLines={renderOptions.includeMethodLines}
+                        includeInterpretation={renderOptions.includeInterpretation}
                       />
                     );
                   })}
@@ -313,14 +477,24 @@ export function LabResultPdfDocument({ snapshot }: { snapshot: LabResultPdfSnaps
           })()}
         </View>
 
-        <View style={styles.signOff}>
-          <Text style={styles.footerNote}>
-            Biological reference ranges are for clinical correlation only. This report was generated
-            electronically.
-          </Text>
-          <Text style={styles.signOffLine}>Authorized signatory: _______________________________</Text>
-          <Text style={styles.signOffLine}>Designation: Pathologist / Lab director</Text>
-        </View>
+        {showSignOff ? (
+          <View style={styles.signOff}>
+            {renderOptions.includeFooterDisclaimer ? (
+              <Text style={styles.footerNote}>
+                Biological reference ranges are for clinical correlation only. This report was
+                generated electronically.
+              </Text>
+            ) : null}
+            {renderOptions.includeAuthorizedSignature ? (
+              <Text style={styles.signOffLine}>
+                Authorized signatory: _______________________________
+              </Text>
+            ) : null}
+            {renderOptions.includePathologistDesignation ? (
+              <Text style={styles.signOffLine}>Designation: Pathologist / Lab director</Text>
+            ) : null}
+          </View>
+        ) : null}
       </Page>
     </Document>
   );
