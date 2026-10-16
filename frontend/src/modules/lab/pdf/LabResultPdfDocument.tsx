@@ -37,10 +37,10 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   header: {
-    marginBottom: 8,
+    marginBottom: 2,
     borderBottomWidth: 1,
     borderBottomColor: '#d9d9d9',
-    paddingBottom: 6,
+    paddingBottom: 3,
   },
   visitBlock: {
     fontSize: 9,
@@ -70,14 +70,15 @@ const styles = StyleSheet.create({
     color: '#434343',
   },
   resultsBlock: { marginTop: 4 },
-  section: { marginTop: 14 },
+  section: { marginTop: 12 },
+  sectionFirst: { marginTop: 0 },
   sectionTitle: {
     fontFamily: 'Helvetica-Bold',
     fontSize: 11,
-    marginBottom: 10,
+    marginBottom: 4,
     color: '#262626',
     backgroundColor: '#f5f5f5',
-    paddingVertical: 6,
+    paddingVertical: 3,
     textAlign: 'center',
   },
   tableHeader: {
@@ -85,9 +86,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     borderBottomWidth: 1,
     borderBottomColor: '#bfbfbf',
-    paddingTop: 4,
-    paddingBottom: 8,
-    marginBottom: 8,
+    paddingTop: 2,
+    paddingBottom: 2,
+    marginBottom: 4,
   },
   tableRow: {
     flexDirection: 'row',
@@ -100,11 +101,15 @@ const styles = StyleSheet.create({
   tableRowMain: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingTop: 8,
+    paddingTop: 4,
+  },
+  tableRowMainWithMethod: {
+    paddingBottom: 2,
   },
   methodRow: {
     flexDirection: 'row',
-    paddingBottom: 8,
+    paddingTop: 0,
+    paddingBottom: 4,
   },
   testEntry: {
     borderBottomWidth: 0.5,
@@ -114,7 +119,7 @@ const styles = StyleSheet.create({
   colName: { width: '48%', paddingRight: 10 },
   colResult: { width: '17%', paddingLeft: 14, paddingRight: 4 },
   colResultValues: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  colRef: { width: '35%', textAlign: 'right', fontSize: 9, paddingTop: 1 },
+  colRef: { width: '35%', textAlign: 'right', fontSize: 9, paddingTop: 0 },
   headerText: { fontFamily: 'Helvetica-Bold', fontSize: 9, color: '#595959' },
   headerRefText: { fontFamily: 'Helvetica-Bold', fontSize: 9, color: '#595959', textAlign: 'right' },
   testName: { fontFamily: 'Helvetica-Bold', fontSize: 10 },
@@ -125,9 +130,9 @@ const styles = StyleSheet.create({
   methodText: {
     fontSize: 9,
     color: '#434343',
-    marginTop: 2,
+    marginTop: 0,
   },
-  testHeading: { paddingTop: 4, marginBottom: 6 },
+  testHeading: { paddingTop: 2, marginBottom: 4 },
   interpretation: {
     marginTop: 3,
     marginBottom: 6,
@@ -343,7 +348,7 @@ function ResultRow({ row, showDivider = true }: { row: LabResultPdfRow; showDivi
         styles.tableRow,
         styles.tableRowMain,
         showDivider ? styles.tableRowDivider : undefined,
-        { paddingBottom: 8 },
+        { paddingBottom: 4 },
       ]}
     >
       <Text
@@ -390,7 +395,12 @@ function TestBlock({
       ) : (
         test.rows.map((row, index) => (
           <View key={index} style={isLastTest ? undefined : styles.testEntry}>
-            <View style={styles.tableRowMain}>
+            <View
+              style={[
+                styles.tableRowMain,
+                includeMethodLines ? styles.tableRowMainWithMethod : undefined,
+              ]}
+            >
               <Text style={[styles.colName, styles.testName]}>{row.name}</Text>
               <ResultUnitCell result={row.result} unit={row.unit} />
               <RefCell reference={row.reference} />
@@ -452,10 +462,12 @@ export function LabResultPdfDocument({
           ) : null}
           {(() => {
             let testIndex = 0;
-            return snapshot.sections
-              .filter((section) => section.tests.length > 0)
-              .map((section) => (
-                <View key={section.departmentName} style={styles.section}>
+            const sectionsWithTests = snapshot.sections.filter((section) => section.tests.length > 0);
+            return sectionsWithTests.map((section, sectionIndex) => (
+                <View
+                  key={section.departmentName}
+                  style={[styles.section, sectionIndex === 0 ? styles.sectionFirst : undefined]}
+                >
                   {renderOptions.includeDepartmentHeadings ? (
                     <Text style={styles.sectionTitle}>{section.departmentName}</Text>
                   ) : null}
